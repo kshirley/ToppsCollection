@@ -270,6 +270,23 @@ library(googlesheets4)
 library(ggplot2)
 library(magick)
 
+# read in the player data:
+player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
+                     data.table = FALSE)
+election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv", 
+                       data.table = FALSE)
+
+# write out a file of BBWAA hall of famers:
+hof <- filter(election_data, pct >= 75) %>%
+  arrange(YoB, desc(pct))
+
+vet <- filter(player_data, method == 4)
+
+all <- select(hof, Name, YoB, pct, Year) %>%
+  bind_rows(select(vet, Name, Year = induction.year) %>% 
+              mutate(YoB = NA, pct = NA))
+
+
 # read the google sheet data:
 cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
 cards <- as.data.frame(cards)
