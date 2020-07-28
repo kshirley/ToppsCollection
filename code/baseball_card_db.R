@@ -292,8 +292,9 @@ cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJR
 cards <- as.data.frame(cards)
 
 lots <- data.frame(lot = c("original", "livingston", "westbury", "warren", 
-                           "linden", "ellie_bday"), 
-                   lot_cost = c(0, 45, 80, 10, 240, 0))
+                           "linden", "ellie_bday", "ebay_petruccos", 
+                           "ebay_alyssa"), 
+                   lot_cost = c(0, 45, 80, 10, 240, 0, 19.17, 8.80))
 
 cards <- left_join(cards, lots)
 cards <- replace_na(cards, list(own = 0))
@@ -467,13 +468,111 @@ cat("</html>\n", file = "./index.html", append = TRUE)
 
 
 
+# python -m http.server 8000
 
 
 
 
 
 
+################################################################################
 
+# [4] For one ebay seller, compute which cards in my collection are available
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(rvest)
+library(jpeg)
+library(googlesheets4)
+library(ggplot2)
+library(magick)
+
+# read in the player data:
+player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
+                     data.table = FALSE)
+election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv", 
+                       data.table = FALSE)
+
+# write out a file of BBWAA hall of famers:
+hof <- filter(election_data, pct >= 75) %>%
+  arrange(YoB, desc(pct))
+
+vet <- filter(player_data, method == 4)
+
+all <- select(hof, Name, YoB, pct, Year) %>%
+  bind_rows(select(vet, Name, Year = induction.year) %>% 
+              mutate(YoB = NA, pct = NA))
+
+
+# read the google sheet data:
+cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
+cards <- as.data.frame(cards)
+cards <- replace_na(cards, list(own = 0))
+
+# summarize by player:
+players <- cards %>%
+  group_by(name) %>%
+  summarize(n = n(), 
+            first_year = min(year), 
+            last_year = max(year), 
+            total_price = sum(price), 
+            remaining_price = sum(price[own == 0]), 
+            own = sum(own)) %>%
+  mutate(remain = n - own) %>%
+  arrange(first_year, last_year) %>%
+  as.data.frame()
+
+# summarize by year:
+years <- cards %>%
+  group_by(year) %>%
+  summarize(n = n(), 
+            total_price = sum(price), 
+            remaining_price = sum(price[own == 0]), 
+            own = sum(own)) %>%
+  mutate(remain = n - own) %>%
+  as.data.frame()
+
+
+# read in set of ebay cards that are available:
+ebay <- fread("data/ebay_set_completion.csv", data.table = FALSE) %>%
+  mutate(available = 1)
+
+
+collection <- cards %>% filter(year >= 1993, year <= 1997) %>%
+  select(name:lot) %>%
+  mutate(number = as.integer(number), 
+         year = as.integer(year))
+
+
+x <- collection %>%
+  left_join(ebay, by = c("year", "number")) %>%
+  replace_na(list(available = 0))
+
+
+
+filter(x, available == 1) %>%
+  select(year, number, name) %>%
+  print(row.names = FALSE)
+  
+filter(x, available == 1) %>%
+  summarize(sum(price))
+  
+
+filter(x, available == 1, own == 0) %>%
+  summarize(sum(price))
+
+
+
+
+# petruccos 1973 topps
+# 280 Al Kaline; 3 asterisks, 6 picks
+# 175 Frank Robinson, 3 asterisks, 6 picks
+# 245 Carl Yastremski, 3 asterisks, 6 picks
+# 255 Reggie Jackson, 5 asterisks, 12 picks
+# 220 Nolan Ryan, 48 picks
 
 
 
