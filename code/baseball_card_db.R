@@ -291,10 +291,18 @@ all <- select(hof, Name, YoB, pct, Year) %>%
 cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
 cards <- as.data.frame(cards)
 
+
+filter(cards, lot == "ebay") %>%
+  summarize(total = sum(price))
+
+
 lots <- data.frame(lot = c("original", "livingston", "westbury", "warren", 
                            "linden", "ellie_bday", "ebay_petruccos", 
-                           "ebay_alyssa"), 
-                   lot_cost = c(0, 45, 80, 10, 240, 0, 19.17, 8.80))
+                           "ebay_alyssa", "amazon_hof"), 
+                   lot_cost = c(0, 45, 80, 10, 240, 0, 19.17, 8.80, 11.99), 
+                   acquired = c("2020-03-09", "2020-06-10", "2020-06-13", 
+                                "2020-06-20", "2020-06-23", "2020-07-15", 
+                                "2020-07-17", "2020-07-19", "2020-07-26"))
 
 cards <- left_join(cards, lots)
 cards <- replace_na(cards, list(own = 0))
@@ -338,7 +346,8 @@ lots <- lots %>%
   left_join(cards %>%
               group_by(lot) %>%
               summarize(n = n(), 
-                        total_price = sum(price)))
+                        total_price = sum(price))) %>%
+  mutate(profit = total_price - lot_cost)
 
 
 
@@ -472,6 +481,10 @@ cat("</html>\n", file = "./index.html", append = TRUE)
 
 
 
+# non-first ballot:
+filter(all, YoB > 1)
+
+filter(all, is.na(YoB))
 
 
 
@@ -573,6 +586,246 @@ filter(x, available == 1, own == 0) %>%
 # 245 Carl Yastremski, 3 asterisks, 6 picks
 # 255 Reggie Jackson, 5 asterisks, 12 picks
 # 220 Nolan Ryan, 48 picks
+
+
+
+
+
+################################################################################
+
+# [5] Make a master list of players to collect
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(rvest)
+library(jpeg)
+library(googlesheets4)
+library(ggplot2)
+library(magick)
+
+# read in the player data:
+player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
+                     data.table = FALSE)
+election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv", 
+                       data.table = FALSE)
+
+# write out a file of BBWAA hall of famers:
+hof <- filter(election_data, pct >= 75) %>%
+  arrange(YoB, desc(pct))
+
+vet <- filter(player_data, method == 4)
+
+all <- select(hof, Name, YoB, pct, Year) %>%
+  bind_rows(select(vet, Name, Year = induction.year) %>% 
+              mutate(YoB = NA, pct = NA))
+
+# mark veterans committee electees:
+all <- all %>%
+  mutate(method = ifelse(is.na(YoB), "vet", "bbwaa"))
+
+# 213 players:
+nrow(all)
+
+# Get the list of hall of famers from Trading Card DB:
+hof_url <- "https://www.tradingcarddb.com/HOF.cfm?Type=Baseball"
+
+# read the URL:
+hof_list <- read_html(hof_url)
+
+# extract their names from baseball card DB:
+db_hofers <- hof_list %>% 
+  html_nodes("li > a") %>%
+  html_attr("href")
+
+db_names <- strsplit(db_hofers, split = "/") %>%
+  sapply("[", 5)
+db_names <- gsub(".", "", db_names, fixed = TRUE)
+db_names <- gsub("-", " ", db_names, fixed = TRUE)
+
+db_hofers <- db_hofers[!is.na(db_names)]
+db_names <- db_names[!is.na(db_names)]
+
+# Correct two names:
+all$Name[all$Name == "Cal Ripken"] <- "Cal Ripken Jr"
+all$Name[all$Name == "Pete Alexander"] <- "Grover Cleveland Alexander"
+
+# add db names to data frame:
+df <- all %>%
+  left_join(data.frame(Name = db_names, 
+                       url = db_hofers), 
+            by = "Name")
+
+# extract player ID and string/name:
+pid <- sapply(strsplit(df$url, split = "/"), function(x) x[[4]])
+player_string <- sapply(strsplit(df$url, split = "/"), function(x) x[[5]])
+df$pid <- pid
+df$player_string <- player_string
+
+# just focus on the first ballot hall of famers
+df <- filter(df, YoB > 1 | is.na(YoB))
+
+# read in the others that I want to collect:
+others <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+                     sheet = 2)
+
+others <- filter(others, method %in% c("bbwaa", "vet") == FALSE)
+
+others <- others %>% 
+  select(-album) %>%
+  mutate(url = "", pid = "", player_string = "")
+
+# stopped here...
+
+# idea is to get the Topps card lists for all others (or maybe get rid of 'personal' list)
+# then when buying cards later than 1990, be sure to include all others.
+
+
+
+n_players <- nrow(df)
+
+cards <- vector("list", n_players)
+player_url <- rep("", n_players)
+for (i in 1:n_players) {
+  print(i)
+  Sys.sleep(2)
+  player_prefix <- "https://www.tcdb.com/Person.cfm/pid/"
+  filters <- "?sTeam=&sCardNum=&sNote=&sSetName=Topps&sBrand="
+  player_url[i] <- paste0(player_prefix, 
+                          first_ballot$pid[i], 
+                          "/col/Y/yea/0/", 
+                          player_string[i], 
+                          filters)
+  
+  # get the raw html of first page:
+  raw <- read_html(player_url[i])
+  
+  # if only one page:
+  if (raw %>% html_nodes("nav") %>% length() == 2) {
+    cards[[i]] <- read_html(player_url[i]) %>%
+      html_nodes("table") %>%
+      .[[4]] %>%
+      html_nodes("tr") %>%
+      html_node("a") %>%
+      html_attr("href")
+  } else {  # if two pages 
+    if (raw %>% html_nodes("nav") %>% length() == 4) {
+      part1 <- raw %>%
+        html_nodes("table") %>%
+        .[[4]] %>%
+        html_nodes("tr") %>%
+        html_node("a") %>%
+        html_attr("href")
+      url2 <- paste0(player_prefix, 
+                     first_ballot$pid[i], 
+                     "/col/Y/yea/0/", 
+                     player_string[i], 
+                     paste0("?PageIndex=2&", filters))
+      part2 <- read_html(url2) %>%
+        html_nodes("table") %>%
+        .[[4]] %>%
+        html_nodes("tr") %>%
+        html_node("a") %>%
+        html_attr("href")
+      cards[[i]] <- c(part1, part2)
+    }
+  }
+}
+
+
+all_cards <- data.frame(name = rep(first_ballot$Name, sapply(cards, length)), 
+                        player_url = rep(player_url, sapply(cards, length)), 
+                        card_url = unlist(cards))
+
+
+fwrite(all_cards, file = "card_collection_v2.csv")  
+
+
+cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
+cards <- as.data.frame(cards)
+
+
+# all %>% 
+
+
+fwrite(all, file = "data/player_master_list.csv")
+
+# Add Veterans - maybe:
+Dave Parker
+Steve Garvey
+Don Mattingly
+Daly Murphy
+Mark McGwire
+Fred McGriff
+Dwight Evans
+Kenny Lofton
+
+
+# Add retired, likely:
+Curt Schilling
+Barry Bonds
+Roger Clemens
+Omar Vizquel
+Scott Rolen
+Todd Helton
+Tim Hudson
+Alex Rodriguez
+David Ortiz
+Mark Teixiera
+Carlos Beltran
+Adrian Beltre
+Joe Mauer
+Chase Utley
+David Wright
+Andy Pettitte
+
+
+# Add retired, possible:
+Billy Wagner
+Gary Sheffield
+Manny Ramirez
+Andruw Jones
+Sammy Sosa
+Mark Buehrle
+
+# Current locks
+Mike Trout
+Albert Pujols
+Miguel Cabrera
+Justin Verlander
+Max Scherzer
+Clayton Kershaw
+Mookie Betts
+Bryce Harper
+Manny Machado
+Kris Bryant
+Christian Yelich
+Cody Bellinger
+
+# Current maybe
+Zack Greinke
+Robinson Cano
+Joey Votto
+Buster Posey
+Stephen Strasburg
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
