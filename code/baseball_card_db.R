@@ -291,20 +291,12 @@ all <- select(hof, Name, YoB, pct, Year) %>%
 cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
 cards <- as.data.frame(cards)
 
+# look at lots:
+lots <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+                   sheet = "purchase_history")
 
-filter(cards, lot == "ebay") %>%
-  summarize(total = sum(price))
-
-
-lots <- data.frame(lot = c("original", "livingston", "westbury", "warren", 
-                           "linden", "ellie_bday", "ebay_petruccos", 
-                           "ebay_alyssa", "amazon_hof"), 
-                   lot_cost = c(0, 45, 80, 10, 240, 0, 19.17, 8.80, 11.99), 
-                   acquired = c("2020-03-09", "2020-06-10", "2020-06-13", 
-                                "2020-06-20", "2020-06-23", "2020-07-15", 
-                                "2020-07-17", "2020-07-19", "2020-07-26"))
-
-cards <- left_join(cards, lots)
+# join with cards table:
+cards <- left_join(cards, lots, by = "name")
 cards <- replace_na(cards, list(own = 0))
 
 # summarize by player:
@@ -346,14 +338,18 @@ lots <- lots %>%
   left_join(cards %>%
               group_by(lot) %>%
               summarize(n = n(), 
-                        total_price = sum(price))) %>%
-  mutate(profit = total_price - lot_cost)
+                        total_price = sum(price)), 
+            by = c("name" = "lot")) %>%
+  mutate(profit = total_price - cost) %>%
+  as.data.frame()
 
+lots
 
 
 # compute total cost for collecting cards going back a certain number of years:
 data.frame(year = rev(years$year), 
-           cost = cumsum(rev(years$total_price)))
+           total_cost = cumsum(rev(years$total_price)), 
+           remaining_cost = cumsum(rev(years$remaining_price)))
 
 
 # measure resolution of each card:
@@ -476,6 +472,7 @@ cat("</html>\n", file = "./index.html", append = TRUE)
 
 
 
+scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards
 
 # python -m http.server 8000
 
