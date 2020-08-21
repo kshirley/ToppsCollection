@@ -296,7 +296,7 @@ lots <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRH
                    sheet = "purchase_history")
 
 # join with cards table:
-cards <- left_join(cards, lots, by = "name")
+cards <- left_join(cards, lots, by = "lot_name")
 cards <- replace_na(cards, list(own = 0))
 
 # summarize by player:
@@ -336,11 +336,11 @@ years %>%
 
 lots <- lots %>% 
   left_join(cards %>%
-              group_by(lot) %>%
+              group_by(lot_name) %>%
               summarize(n = n(), 
                         total_price = sum(price)), 
-            by = c("name" = "lot")) %>%
-  mutate(profit = total_price - cost) %>%
+            by = "lot_name") %>%
+  mutate(profit = total_price - lot_cost) %>%
   as.data.frame()
 
 lots
@@ -367,49 +367,14 @@ for (i in 1:n_cards) {
 cards <- cards %>%
   mutate(height = res[, 1], width = res[, 2])
 
-cards %>%
-  ggplot(aes(x = width, y = height)) + 
-  geom_point()
-
-
-# filter(cards, height > 360)
-# filter(cards, width > 360)
-# 
-# filter(cards, year == 1955)
+# cards %>%
+#   ggplot(aes(x = width, y = height)) + 
+#   geom_point()
 
 
 # count number of unique players and years:
 n_players <- nrow(players)
 n_years <- nrow(years)
-
-
-# look at 1974 cards:
-# tmp <- filter(cards, year == 1974)
-
-# # identify all horizontal layouts:
-# tmp <- filter(cards, width > height)
-# 
-# # look at them:
-# cat("<html>\n", file = "~/personal/bball_cards/index.html")
-# cat("<body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
-# for (i in 1:nrow(tmp)) {
-#     cat("<img src='front/", tmp$filename[i], "' >\n", 
-#         sep = "", file = "~/personal/bball_cards/index.html", append = TRUE)
-# }
-# cat("</body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
-# cat("</html>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
-
-
-
-# # rotate the 80 images that are horizontally laid out and write to disk:
-# for (i in 1:nrow(tmp)) {
-#   card <- image_read(paste0("data/front/", tmp$filename[i]))
-#   image_rotate(card, 270) %>%
-#     image_write(paste0("data/rotated/rotated_", tmp$filename[i]))
-# }
-
-
-
 
 # set up 'class' for the opacity toggle:
 cards$class <- ifelse(cards$own == 1, "own", "dont-own")
@@ -482,6 +447,36 @@ scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/ke
 filter(all, YoB > 1)
 
 filter(all, is.na(YoB))
+
+
+
+
+# look at 1974 cards:
+# tmp <- filter(cards, year == 1974)
+
+# # identify all horizontal layouts:
+# tmp <- filter(cards, width > height)
+# 
+# # look at them:
+# cat("<html>\n", file = "~/personal/bball_cards/index.html")
+# cat("<body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
+# for (i in 1:nrow(tmp)) {
+#     cat("<img src='front/", tmp$filename[i], "' >\n", 
+#         sep = "", file = "~/personal/bball_cards/index.html", append = TRUE)
+# }
+# cat("</body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
+# cat("</html>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
+
+
+
+# # rotate the 80 images that are horizontally laid out and write to disk:
+# for (i in 1:nrow(tmp)) {
+#   card <- image_read(paste0("data/front/", tmp$filename[i]))
+#   image_rotate(card, 270) %>%
+#     image_write(paste0("data/rotated/rotated_", tmp$filename[i]))
+# }
+
+
 
 
 
@@ -811,15 +806,96 @@ Stephen Strasburg
 
 
 
+################################################################################
+
+# [6] Simulate opening a box of 36 packs of 1986 Topps
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(rvest)
+
+# sample:
+n <- 100000
+num <- numeric(n)
+set.seed(9876)
+for (i in 1:n) {
+  box <- sample.int(n = 792, size = 540, replace = TRUE)
+  num[i] <- sum(1:14 %in% box)
+}
+
+
+hist(num, breaks = 0:15)
+
+
+data.frame(num = num) %>%
+  group_by(num) %>%
+  summarize(freq = n()) %>%
+  as.data.frame() %>%
+  mutate(p = round(freq / 1e5, 3)) %>%
+  mutate(cum_prob = cumsum(p)) %>%
+  print(row.names = FALSE)
+
+
+# num  freq     p cum_prob
+#   0     4 0.000    0.000
+#   1    97 0.001    0.001
+#   2   586 0.006    0.007
+#   3  2356 0.024    0.031
+#   4  6461 0.065    0.096
+#   5 12780 0.128    0.224
+#   6 18855 0.189    0.413
+#   7 20936 0.209    0.622
+#   8 17950 0.180    0.802
+#   9 11858 0.119    0.921
+#  10  5594 0.056    0.977
+#  11  1960 0.020    0.995
+#  12   480 0.005    0.998
+#  13    79 0.001    0.999
+#  14     4 0.000    1.000
+
+# P(5 or less) = 22%
+# P(6, 7, 8)   = 58%
+# P(9 or more) = 20%
+
+# all the below have about a 20% chance:
+# 4-5
+# 6
+# 7
+# 8
+# 9-10
 
 
 
 
 
+################################################################################
+
+# [7] Price analysis of bicentennial bats
+setwd("~/personal")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(rvest)
+
+# read in the data:
+bats <- fread("bicentennial_bats.csv", data.table = FALSE)
+bats$date <- as.Date(bats$date)
+bats <- arrange(bats, desc(date))
 
 
-
-
+x <- bats %>%
+  group_by(player) %>%
+  summarize(n = n(), 
+            mean_price = mean(price), 
+            median_price = median(price), 
+            min_price = min(price), 
+            max_price = max(price), 
+            most_recent_price = price[1]) %>%
+  as.data.frame() %>%
+  arrange(desc(n))
 
 
 
