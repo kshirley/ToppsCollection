@@ -586,7 +586,8 @@ filter(x, available == 1, own == 0) %>%
 
 ################################################################################
 
-# [5] Make a master list of players to collect
+# [5] Get the list of Topps cards for HOF players (NumBallots > 1)
+#     and my personal list of extra players.
 
 setwd("~/public_git/ToppsCollection")
 library(dplyr)
@@ -657,39 +658,67 @@ player_string <- sapply(strsplit(df$url, split = "/"), function(x) x[[5]])
 df$pid <- pid
 df$player_string <- player_string
 
-# just focus on the first ballot hall of famers
-df <- filter(df, YoB > 1 | is.na(YoB))
 
-# read in the others that I want to collect:
+head(df)
+
+#             Name YoB    pct Year method                                  url  pid   player_string
+# 1 Mariano Rivera   1 100.00 2019  bbwaa  /Person.cfm/pid/4960/Mariano-Rivera 4960  Mariano-Rivera
+# 2    Derek Jeter   1  99.75 2020  bbwaa     /Person.cfm/pid/2885/Derek-Jeter 2885     Derek-Jeter
+# 3 Ken Griffey Jr   1  99.32 2016  bbwaa /Person.cfm/pid/2245/Ken-Griffey-Jr. 2245 Ken-Griffey-Jr.
+# 4     Tom Seaver   1  98.84 1992  bbwaa      /Person.cfm/pid/5301/Tom-Seaver 5301      Tom-Seaver
+# 5     Nolan Ryan   1  98.79 1999  bbwaa      /Person.cfm/pid/5128/Nolan-Ryan 5128      Nolan-Ryan
+# 6  Cal Ripken Jr   1  98.53 2007  bbwaa  /Person.cfm/pid/4943/Cal-Ripken-Jr. 4943  Cal-Ripken-Jr.
+
+
+tail(df)
+#               Name YoB pct Year method                                  url   pid  player_string
+# 208     Amos Rusie  NA  NA 1977    vet     /Person.cfm/pid/30100/Amos-Rusie 30100     Amos-Rusie
+# 209     Joe Kelley  NA  NA 1971    vet      /Person.cfm/pid/3049/Joe-Kelley  3049     Joe-Kelley
+# 210 Billy Hamilton  NA  NA 1961    vet /Person.cfm/pid/49416/Billy-Hamilton 49416 Billy-Hamilton
+# 211   Jake Beckley  NA  NA 1971    vet     /Person.cfm/pid/374/Jake-Beckley   374   Jake-Beckley
+# 212     Buck Ewing  NA  NA 1939    vet     /Person.cfm/pid/36750/Buck-Ewing 36750     Buck-Ewing
+# 213    Elmer Flick  NA  NA 1963    vet     /Person.cfm/pid/1854/Elmer-Flick  1854    Elmer-Flick
+
+# OK. We have the URL for the top 213 players.
+
+
+
+### read in the others that I want to collect:
 others <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
-                     sheet = 2)
+                     sheet = "player_list")
 
 others <- filter(others, method %in% c("bbwaa", "vet") == FALSE)
 
 others <- others %>% 
   select(-album) %>%
-  mutate(url = "", pid = "", player_string = "")
-
-# stopped here...
-
-# idea is to get the Topps card lists for all others (or maybe get rid of 'personal' list)
-# then when buying cards later than 1990, be sure to include all others.
+  mutate(pid = "", player_string = "")
 
 
+others$url <- gsub("https://www.tcdb.com", "", others$url, fixed = TRUE)
 
-n_players <- nrow(df)
+# extract player ID and string/name:
+others$pid <- sapply(strsplit(others$url, split = "/"), function(x) x[[4]])
+others$player_string <- sapply(strsplit(others$url, split = "/"), function(x) x[[5]])
 
+
+# Combine the original ones with the personal list
+x <- bind_rows(df, others)
+x <- filter(x, YoB > 1 | is.na(YoB))
+n_players <- nrow(x)
+# 222
+
+# set up the list of cards for each player:
 cards <- vector("list", n_players)
 player_url <- rep("", n_players)
-for (i in 1:n_players) {
+player_prefix <- "https://www.tcdb.com/Person.cfm/pid/"
+filters <- "?sTeam=&sCardNum=&sNote=&sSetName=Topps&sBrand="
+for (i in 157:n_players) {
   print(i)
   Sys.sleep(2)
-  player_prefix <- "https://www.tcdb.com/Person.cfm/pid/"
-  filters <- "?sTeam=&sCardNum=&sNote=&sSetName=Topps&sBrand="
   player_url[i] <- paste0(player_prefix, 
-                          first_ballot$pid[i], 
+                          x$pid[i], 
                           "/col/Y/yea/0/", 
-                          player_string[i], 
+                          x$player_string[i], 
                           filters)
   
   # get the raw html of first page:
@@ -712,9 +741,9 @@ for (i in 1:n_players) {
         html_node("a") %>%
         html_attr("href")
       url2 <- paste0(player_prefix, 
-                     first_ballot$pid[i], 
+                     x$pid[i], 
                      "/col/Y/yea/0/", 
-                     player_string[i], 
+                     x$player_string[i], 
                      paste0("?PageIndex=2&", filters))
       part2 <- read_html(url2) %>%
         html_nodes("table") %>%
@@ -728,22 +757,24 @@ for (i in 1:n_players) {
 }
 
 
-all_cards <- data.frame(name = rep(first_ballot$Name, sapply(cards, length)), 
+all_cards <- data.frame(name = rep(x$Name, sapply(cards, length)), 
                         player_url = rep(player_url, sapply(cards, length)), 
                         card_url = unlist(cards))
 
 
-fwrite(all_cards, file = "card_collection_v2.csv")  
+fwrite(all_cards, file = "data/card_collection_part2.csv")  
+
+# Now, using this local file, fill out a 0/1 where 1 = include in the collection.
+# Return the file as an "annotated" file.
 
 
-cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
-cards <- as.data.frame(cards)
+
+# cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
+# cards <- as.data.frame(cards)
 
 
-# all %>% 
 
-
-fwrite(all, file = "data/player_master_list.csv")
+# fwrite(all, file = "data/player_master_list.csv")
 
 # Add Veterans - maybe:
 Dave Parker
