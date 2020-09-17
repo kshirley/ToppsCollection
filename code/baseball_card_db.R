@@ -269,6 +269,7 @@ library(jpeg)
 library(googlesheets4)
 library(ggplot2)
 library(magick)
+library(plotly)
 
 # read in the player data:
 player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
@@ -344,6 +345,15 @@ lots <- lots %>%
   as.data.frame()
 
 lots
+
+lot_plot <- lots %>% 
+  ggplot(aes(x = total_price, y = lot_cost, label = lot_name)) + 
+  geom_point(alpha = 0.5, size = 2) + 
+  geom_abline(slope = 1, intercept = 0, lty = 2)
+
+ggplotly(lot_plot)
+
+  
 
 
 # compute total cost for collecting cards going back a certain number of years:
