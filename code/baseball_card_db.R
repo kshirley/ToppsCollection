@@ -715,6 +715,7 @@ others$player_string <- sapply(strsplit(others$url, split = "/"), function(x) x[
 x <- bind_rows(df, others)
 x <- filter(x, YoB > 1 | is.na(YoB))
 n_players <- nrow(x)
+n_players
 # 222
 
 # set up the list of cards for each player:
@@ -722,7 +723,7 @@ cards <- vector("list", n_players)
 player_url <- rep("", n_players)
 player_prefix <- "https://www.tcdb.com/Person.cfm/pid/"
 filters <- "?sTeam=&sCardNum=&sNote=&sSetName=Topps&sBrand="
-for (i in 157:n_players) {
+for (i in 179:n_players) {
   print(i)
   Sys.sleep(2)
   player_url[i] <- paste0(player_prefix, 
@@ -733,36 +734,39 @@ for (i in 157:n_players) {
   
   # get the raw html of first page:
   raw <- read_html(player_url[i])
-  
+  nav_links <- raw %>% html_nodes("nav") %>% html_text()
   # if only one page:
-  if (raw %>% html_nodes("nav") %>% length() == 2) {
+  if (length(nav_links) == 2) {
     cards[[i]] <- read_html(player_url[i]) %>%
       html_nodes("table") %>%
       .[[4]] %>%
       html_nodes("tr") %>%
       html_node("a") %>%
       html_attr("href")
-  } else {  # if two pages 
-    if (raw %>% html_nodes("nav") %>% length() == 4) {
-      part1 <- raw %>%
+  } else {  # if 2 or more pages
+    nav_bar <- unlist(strsplit(nav_links[3], ""))
+    n_pages <- max(as.integer(nav_bar[grep("[0-9]", nav_bar)]))
+    card_urls <- raw %>%
+      html_nodes("table") %>%
+      .[[4]] %>%
+      html_nodes("tr") %>%
+      html_node("a") %>%
+      html_attr("href")
+    for (j in 2:n_pages) {
+      next_url <- paste0(player_prefix, 
+                         x$pid[i], 
+                         "/col/Y/yea/0/", 
+                         x$player_string[i], 
+                         paste0("?PageIndex=", j, "&", filters))
+      next_part <- read_html(next_url) %>%
         html_nodes("table") %>%
         .[[4]] %>%
         html_nodes("tr") %>%
         html_node("a") %>%
         html_attr("href")
-      url2 <- paste0(player_prefix, 
-                     x$pid[i], 
-                     "/col/Y/yea/0/", 
-                     x$player_string[i], 
-                     paste0("?PageIndex=2&", filters))
-      part2 <- read_html(url2) %>%
-        html_nodes("table") %>%
-        .[[4]] %>%
-        html_nodes("tr") %>%
-        html_node("a") %>%
-        html_attr("href")
-      cards[[i]] <- c(part1, part2)
+      card_urls <- c(card_urls, next_part)
     }
+    cards[[i]] <- card_urls
   }
 }
 
@@ -774,9 +778,21 @@ all_cards <- data.frame(name = rep(x$Name, sapply(cards, length)),
 
 fwrite(all_cards, file = "data/card_collection_part2.csv")  
 
+
+
+# updated version with n_pages > 2, and right Raul Mondesi and Doc Gooden
+updated_cards <- data.frame(name = rep(x$Name, sapply(cards, length)), 
+                            player_url = rep(player_url, sapply(cards, length)), 
+                            card_url = unlist(cards))
+
+
+fwrite(updated_cards, file = "data/card_collection_part2_updated.csv")  
+
+
 # Now, using this local file, fill out a 0/1 where 1 = include in the collection.
 # Return the file as an "annotated" file.
 
+# For updated version, manually cut and paste into the current 'annotated' version
 
 
 # cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
