@@ -171,7 +171,7 @@ all <- select(hof, Name, YoB, pct, Year) %>%
 
 
 # read in the cards:
-cards <- fread("data/card_collection_annotated.csv", data.table = FALSE) %>%
+cards <- fread("data/card_collection_part2_annotated.csv", data.table = FALSE) %>%
   filter(collect == 1)
 
 # get the URL split up:
@@ -196,9 +196,9 @@ price <- numeric(n_cards)
 
 
 prefix <- "https://www.tradingcarddb.com"
-for (i in 1:n_cards) {
+for (i in 355:n_cards) {
   if (i %% 10 == 0) print(i)
-  Sys.sleep(2)
+  # Sys.sleep(1)
   card <- read_html(paste0(prefix, cards$url[i]))
   imgs <- card %>% html_nodes("img") %>%
     html_attr("src")
@@ -207,7 +207,11 @@ for (i in 1:n_cards) {
   price_text <- card %>% html_nodes("em") %>%
     html_text()
   ix <- grep("Med. Price", price_text)
-  price[i] <- as.numeric(gsub("Med. Price: \\$", "", price_text)[ix])
+  if (length(ix) > 0) {
+    price[i] <- as.numeric(gsub("Med. Price: \\$", "", price_text)[ix])
+  } else {
+    price[i] <- NA
+  }
 }
 
 
@@ -224,7 +228,9 @@ arrange(cards, desc(price)) %>%
   head(30)
 
 # write the file to disk:
-fwrite(cards, file = "data/list.csv")
+fwrite(cards, file = "data/list_part2.csv")
+
+
 
 
 
@@ -716,7 +722,7 @@ x <- bind_rows(df, others)
 x <- filter(x, YoB > 1 | is.na(YoB))
 n_players <- nrow(x)
 n_players
-# 222
+# 224
 
 # set up the list of cards for each player:
 cards <- vector("list", n_players)
@@ -776,7 +782,9 @@ all_cards <- data.frame(name = rep(x$Name, sapply(cards, length)),
                         card_url = unlist(cards))
 
 
-fwrite(all_cards, file = "data/card_collection_part2.csv")  
+# fwrite(all_cards, file = "data/card_collection_part2.csv")  
+fwrite(all_cards, file = "data/felix_hernandez.csv")  
+fwrite(all_cards, file = "data/pete_rose.csv")  
 
 
 
