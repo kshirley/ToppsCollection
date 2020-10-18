@@ -152,27 +152,67 @@ library(data.table)
 library(tidyr)
 library(stringr)
 library(rvest)
-
-# read in the player data:
-player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
-                     data.table = FALSE)
-election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv", 
-                       data.table = FALSE)
-
-# write out a file of BBWAA hall of famers:
-hof <- filter(election_data, pct >= 75) %>%
-  arrange(YoB, desc(pct))
-
-vet <- filter(player_data, method == 4)
-
-all <- select(hof, Name, YoB, pct, Year) %>%
-  bind_rows(select(vet, Name, Year = induction.year) %>% 
-              mutate(YoB = NA, pct = NA))
+library(googlesheets4)
 
 
-# read in the cards:
-cards <- fread("data/card_collection_part2_annotated.csv", data.table = FALSE) %>%
-  filter(collect == 1)
+# # read in the player data:
+# player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
+#                      data.table = FALSE)
+# election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv", 
+#                        data.table = FALSE)
+# 
+# # write out a file of BBWAA hall of famers:
+# hof <- filter(election_data, pct >= 75) %>%
+#   arrange(YoB, desc(pct))
+# 
+# vet <- filter(player_data, method == 4)
+# 
+# all <- select(hof, Name, YoB, pct, Year) %>%
+#   bind_rows(select(vet, Name, Year = induction.year) %>% 
+#               mutate(YoB = NA, pct = NA))
+
+
+# read in the first-ballot cards from google sheets:
+list1 <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
+list1 <- as.data.frame(list1)
+list1$number <- as.character(list1$number)
+
+# read the other cards from my spreadsheet:
+list2 <- fread("data/list_part2.csv", data.table = FALSE)
+list2 <- list2 %>% mutate(own = NA, lot_name = NA, remaining_price = NA)
+list2 <- as.data.frame(list2)
+list2 <- select(list2, name, year, number, price, own, lot_name, remaining_price, 
+                url, front_url, back_url)
+
+data.frame(sapply(list1, class))
+data.frame(sapply(list2, class))
+
+player_list <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+                          sheet = "player_list")
+player_list <- as.data.frame(player_list)
+player_list <- player_list %>% 
+  mutate(group = case_when(!is.na(YoB) ~ paste(method, YoB, sep = "_"), 
+                           is.na(YoB) ~ method))
+
+cards <- bind_rows(list1, list2)
+cards <- cards %>% 
+  left_join(select(player_list, Name, group), 
+            by = c("name" = "Name"))
+cards <- select(cards, name, group, year:back_url)
+cards <- arrange(cards, year, number)
+
+# look at the data frame:
+select(cards, name:price) %>% as.data.frame()
+
+fwrite(cards, file = "data/all_cards_google_sheet.csv")
+
+
+
+
+
+############################################
+
+# From earlier, got the card attributes here.
 
 # get the URL split up:
 tmp <- sapply(strsplit(cards$card_url, split = "/"), function(x) x[[7]])
@@ -196,7 +236,7 @@ price <- numeric(n_cards)
 
 
 prefix <- "https://www.tradingcarddb.com"
-for (i in 355:n_cards) {
+for (i in 1:n_cards) {
   if (i %% 10 == 0) print(i)
   # Sys.sleep(1)
   card <- read_html(paste0(prefix, cards$url[i]))
@@ -230,6 +270,8 @@ arrange(cards, desc(price)) %>%
 # write the file to disk:
 fwrite(cards, file = "data/list_part2.csv")
 
+pr <- filter(cards, name == "Pete Rose")
+fwrite(pr, file = "data/list_pete_rose_addition.csv")
 
 
 
@@ -237,7 +279,7 @@ fwrite(cards, file = "data/list_part2.csv")
 # for loop to download images:
 # front
 setwd("~/public_git/ToppsCollection/images/front")
-for (i in 1:n_cards) {
+for (i in 1878:n_cards) {
   print(i)
   Sys.sleep(1)
   cmd <- paste0("wget ", prefix, cards$front_url[i])
@@ -246,7 +288,7 @@ for (i in 1:n_cards) {
 
 # back
 setwd("~/public_git/ToppsCollection/images/back")
-for (i in 1:n_cards) {
+for (i in 1878:n_cards) {
   print(i)
   Sys.sleep(2.5)
   cmd <- paste0("wget ", prefix, cards$back_url[i])
@@ -264,6 +306,12 @@ for (i in 1:n_cards) {
 ################################################################################
 
 # [3] Create the webpage to show the grid of card fronts
+#     Set this up so that you can show an arbitrary subset of cards
+#  a. first ballot + current + retired 'locks'
+#  b. second ballor or later bbwaa
+#  c. veterans committee
+#  d. everyone else
+#  So 4 webpages in total
 
 setwd("~/public_git/ToppsCollection")
 library(dplyr)
@@ -292,6 +340,7 @@ vet <- filter(player_data, method == 4)
 all <- select(hof, Name, YoB, pct, Year) %>%
   bind_rows(select(vet, Name, Year = induction.year) %>% 
               mutate(YoB = NA, pct = NA))
+
 
 
 # read the google sheet data:
