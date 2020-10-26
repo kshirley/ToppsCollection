@@ -325,39 +325,42 @@ library(ggplot2)
 library(magick)
 library(plotly)
 
-# read in the player data:
-player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv", 
-                     data.table = FALSE)
-election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv", 
-                       data.table = FALSE)
-
-# write out a file of BBWAA hall of famers:
-hof <- filter(election_data, pct >= 75) %>%
-  arrange(YoB, desc(pct))
-
-vet <- filter(player_data, method == 4)
-
-all <- select(hof, Name, YoB, pct, Year) %>%
-  bind_rows(select(vet, Name, Year = induction.year) %>% 
-              mutate(YoB = NA, pct = NA))
-
+# # read in the player data:
+# player_data <- fread("~/public_git/mlb-hall-of-fame-voting/player_data.csv",
+#                      data.table = FALSE)
+# election_data <- fread("~/public_git/mlb-hall-of-fame-voting/election_data.csv",
+#                        data.table = FALSE)
+# 
+# # write out a file of BBWAA hall of famers:
+# hof <- filter(election_data, pct >= 75) %>%
+#   arrange(YoB, desc(pct))
+# 
+# vet <- filter(player_data, method == 4)
+# 
+# all <- select(hof, Name, YoB, pct, Year) %>%
+#   bind_rows(select(vet, Name, Year = induction.year) %>%
+#               mutate(YoB = NA, pct = NA))
 
 
 # read the google sheet data:
-cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing")
+cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+                    sheet = "all_cards")
 cards <- as.data.frame(cards)
 
-# look at lots:
-lots <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
-                   sheet = "purchase_history")
+# use 2 digits for YoB group label.
+for (i in 1:9) {
+  yob <- sapply(strsplit(cards$group, split = "_"), "[", 2) == i
+  sel <- !is.na(yob) & yob
+  cards$group[sel] <- paste("bbwaa", sprintf("%02s", i), sep = "_")
+}
 
-# join with cards table:
-cards <- left_join(cards, lots, by = "lot_name")
-cards <- replace_na(cards, list(own = 0))
+
+
+# cards <- replace_na(cards, list(own = 0))
 
 # summarize by player:
 players <- cards %>%
-  group_by(name) %>%
+  group_by(name, group) %>%
   summarize(n = n(), 
             first_year = min(year), 
             last_year = max(year), 
@@ -367,6 +370,60 @@ players <- cards %>%
   mutate(remain = n - own) %>%
   arrange(first_year, last_year) %>%
   as.data.frame()
+
+# look at groups:
+players %>%
+  group_by(group) %>% 
+  summarize(n_players = n(), 
+            total_price = sum(total_price), 
+            total_cards = sum(n), 
+            own = sum(own)) %>% 
+  as.data.frame()
+
+players <- players %>%
+  mutate(g = case_when(group %in% c("bbwaa_01", "retired_lock", "current_lock") ~ "first_ballot", 
+                       group %in% paste("bbwaa", sprintf("%02d", 2:15), sep = "_") ~ "bbwaa", 
+                       TRUE ~ "vet_or_other"))
+
+players %>% 
+  group_by(g) %>% 
+  summarize(n_players = n(), 
+            total_price = sum(total_price), 
+            total_cards = sum(n), 
+            own = sum(own)) %>% 
+  as.data.frame()
+
+
+players %>% 
+  filter(g == "bbwaa") %>%
+  arrange(desc(total_price)) %>%
+  as.data.frame()
+
+players %>% 
+  filter(g == "vet_or_other") %>%
+  arrange(desc(total_price)) %>%
+  as.data.frame()
+
+
+cards <- cards %>%
+  mutate(g = case_when(group %in% c("bbwaa_01", "retired_lock", "current_lock") ~ "first_ballot", 
+                       group %in% paste("bbwaa", sprintf("%02d", 2:15), sep = "_") ~ "bbwaa", 
+                       TRUE ~ "vet_or_other"))
+
+
+first_ballot <- filter(cards, g == "first_ballot")
+bbwaa <- filter(cards, g == "bbwaa")
+vet <- filter(cards, g == "vet_or_other")
+
+
+bbwaa <- select(bbwaa, -group, -g)
+vet <- select(vet, -group, -g)
+
+fwrite(bbwaa, file = "data/gsheets_bbwaa.csv")
+fwrite(vet, file = "data/gsheets_vet.csv")
+
+
+
 
 # summarize by year:
 years <- cards %>%
@@ -390,23 +447,29 @@ years %>%
   geom_line()
 
 
-lots <- lots %>% 
-  left_join(cards %>%
-              group_by(lot_name) %>%
-              summarize(n = n(), 
-                        total_price = sum(price)), 
-            by = "lot_name") %>%
-  mutate(profit = total_price - lot_cost) %>%
-  as.data.frame()
-
-lots
-
-lot_plot <- lots %>% 
-  ggplot(aes(x = total_price, y = lot_cost, label = lot_name)) + 
-  geom_point(alpha = 0.5, size = 2) + 
-  geom_abline(slope = 1, intercept = 0, lty = 2)
-
-ggplotly(lot_plot)
+# ### look at lots:
+# lots <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+#                    sheet = "purchase_history")
+# 
+# # join with cards table:
+# cards <- left_join(cards, lots, by = "lot_name")
+# lots <- lots %>% 
+#   left_join(cards %>%
+#               group_by(lot_name) %>%
+#               summarize(n = n(), 
+#                         total_price = sum(price)), 
+#             by = "lot_name") %>%
+#   mutate(profit = total_price - lot_cost) %>%
+#   as.data.frame()
+# 
+# lots
+# 
+# lot_plot <- lots %>% 
+#   ggplot(aes(x = total_price, y = lot_cost, label = lot_name)) + 
+#   geom_point(alpha = 0.5, size = 2) + 
+#   geom_abline(slope = 1, intercept = 0, lty = 2)
+# 
+# ggplotly(lot_plot)
 
   
 
