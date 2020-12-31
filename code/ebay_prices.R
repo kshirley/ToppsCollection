@@ -501,6 +501,15 @@ cards <- replace_na(cards, list(own = 0))
 cards$type <- type
 
 
+filter(cards, year == 1990) %>%
+  arrange(own, type) %>%
+  select(name:lot_name, type)
+
+filter(cards, year == 1985, own == 0) %>%
+  mutate(number = as.integer(number)) %>%
+  arrange(desc(number)) %>%
+  select(name:lot_name, type)
+
 filter(cards, year == 1987) %>%
   arrange(desc(price)) %>%
   select(name:price, type)
@@ -577,5 +586,65 @@ cards %>% group_by(year) %>%
   as.data.frame()
 
   
+################################################################################
 
+# get prices for 1958 topps and compare to my list:
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(rvest)
+library(tidyr)
+library(stringr)
+library(googlesheets4)
+library(httr)
+
+# get the PSA SRM page for 1958 topps:
+url <- "https://www.psacard.com/smrpriceguide/baseball-card-values/1958-topps/1159"
+url <- "https://www.psacard.com/smrpriceguide/baseball-card-values/1979-topps/1254"
+
+page <- read_html(url)
+  
+x <- page %>%
+  html_nodes("table") %>%
+  html_table() %>% .[[1]]
+
+# get rid of first column
+x <- x[, -1]
+
+# rename:
+names(x) <- tolower(gsub(" ", "_", names(x)))
+names(x) <- tolower(gsub("[+-]", "", names(x)))
+names(x) <- tolower(gsub(".", "", names(x), fixed = TRUE))
+
+# get rid of commas:
+for (i in 3:5) {
+  x[, i] <- gsub(",", "", x[, i], fixed = TRUE)
+  x[, i] <- gsub("+", "", x[, i], fixed = TRUE)
+  x[, i] <- gsub("-", "", x[, i], fixed = TRUE)
+  x[, i] <- as.numeric(x[, i])
+}
+
+filter(x, card_number == 115)
+filter(x, card_number == 116)
+
+apply(x[, 3:5], 2, median, na.rm = TRUE)
+
+# 1979 Topps:
+# nmmt_8     mt_9 gemmt_10 
+#      2        5       25 
+
+# sort by price for a NM-7:
+x %>% arrange(desc(mt_9)) %>%
+  select(description, card_number, nmmt_8, mt_9) %>%
+  head(50)
+
+# Look at yellow letters:
+filter(x, grepl("YL", description))
+
+
+filter(x, card_number == 25)
+
+
+### Look at 1979 Topps:
 

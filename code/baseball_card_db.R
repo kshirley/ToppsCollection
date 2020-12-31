@@ -1,5 +1,333 @@
 ################################################################################
 
+# [3] Create the webpage to show the grid of card fronts
+#     Set this up so that you can show an arbitrary subset of cards
+#  a. first ballot + current + retired 'locks'
+#  b. second ballor or later bbwaa
+#  c. veterans committee + others
+#  So 3 webpages in total
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(rvest)
+library(jpeg)
+library(googlesheets4)
+library(ggplot2)
+library(magick)
+
+
+# read the google sheet data:
+google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
+cards1 <- read_sheet(google_docs_url, sheet = "first_ballot_cards")
+cards1 <- as.data.frame(cards1)
+cards2 <- read_sheet(google_docs_url, sheet = "bbwaa_cards")
+cards2 <- as.data.frame(cards2)
+cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
+cards3 <- as.data.frame(cards3)
+
+
+# function to build the webpage locally:
+make_page <- function(cards) {
+  
+  # set own = 0 instead of NA
+  cards <- replace_na(cards, list(own = 0))
+  
+  # measure resolution of each card:
+  filename <- sapply(strsplit(cards$front_url, split = "/"), function(x) x[6])
+  cards <- mutate(cards, filename = filename)
+  
+  n_cards <- nrow(cards)
+  res <- matrix(NA, n_cards, 2)
+  for (i in 1:n_cards) {
+    if (i %% 100 == 0) print(i)
+    img <- readJPEG(paste0("images/front/", filename[i]))
+    res[i, ] <- dim(img)[1:2]
+  }
+  
+  cards <- cards %>%
+    mutate(height = res[, 1], width = res[, 2])
+  
+  # summarize by player:
+  players <- cards %>%
+    group_by(name) %>%
+    summarize(n = n(), 
+              first_year = min(year), 
+              last_year = max(year), 
+              total_price = sum(price), 
+              remaining_price = sum(price[own == 0]), 
+              own = sum(own)) %>%
+    mutate(remain = n - own) %>%
+    arrange(first_year, last_year) %>%
+    as.data.frame()
+  
+  # summarize by year:
+  years <- cards %>%
+    group_by(year) %>%
+    summarize(n = n(), 
+              total_price = sum(price), 
+              remaining_price = sum(price[own == 0]), 
+              own = sum(own)) %>%
+    mutate(remain = n - own) %>%
+    as.data.frame()
+  
+  
+  # count number of unique players and years:
+  n_players <- lu(cards$name)
+  n_years <- lu(cards$year)
+  
+  # set up 'class' for the opacity toggle:
+  cards$class <- ifelse(cards$own == 1, "own", "dont-own")
+  
+  # Now, create the grid layout:
+  cat("<html>\n", file = "./index.html")
+  cat("<head>\n", file = "./index.html", append = TRUE)
+  cat("<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>\n", 
+      file = "./index.html", append = TRUE)
+  cat("<script src='code/toggle_opacity.js'></script>\n", 
+      file = "./index.html", append = TRUE)
+  cat("</head>\n", file = "./index.html", append = TRUE)
+  cat("<body>\n", file = "./index.html", append = TRUE)
+  cat("<div>\n", 
+      "<button class='allbutton'>Show all cards</button>\n", 
+      "<br>\n", 
+      "<button class='ownbutton'>Show cards I own</button>\n",
+      "</div>\n", sep = "", file = "./index.html", append = TRUE)
+  cat("<div style='width: 9000px'>", file = "./index.html", 
+      append = TRUE)
+  cat("<table><tr>", file = "./index.html", append = TRUE)
+  for (i in 1:n_years) {
+    cat("<td style='width:100px; text-align:center'>", 1951 + i, "</td>", file = "./index.html", 
+        append = TRUE)
+  }
+  cat("</tr></table>", file = "./index.html", append = TRUE)
+  for (i in 1:n_players) {
+    tmp <- filter(cards, name == players$name[i])
+    for (j in 1:n_years) {
+      if ((1951 + j) %in% tmp$year) {
+        cat("<a href='https://www.tcdb.com", tmp$url[tmp$year == 1951 + j], 
+            "' style='text-decoration:none;'>", 
+            file = "./index.html", append = TRUE, sep = "")
+        if (tmp$height[tmp$year == 1951 + j] <= tmp$width[tmp$year == 1951 + j]) {  # get the rotated version
+          cat("<img src='images/rotated/rotated_", tmp$filename[tmp$year == 1951 + j], 
+              "' height=140px width=100px class='", 
+              tmp$class[tmp$year == 1951 + j], "'>\n", 
+              sep = "", file = "./index.html", append = TRUE)
+        } else {
+          cat("<img src='images/front/", tmp$filename[tmp$year == 1951 + j], 
+              "' height=140px width=100px class='", 
+              tmp$class[tmp$year == 1951 + j], "'>\n", 
+              sep = "", file = "./index.html", append = TRUE)
+        }
+        cat("</a>", file = "./index.html", append = TRUE)
+      } else {
+        cat("<img src='images/blank.jpg' height=140px width=100px>\n", 
+            file = "./index.html", append = TRUE)
+      }
+    }
+    cat("<br>\n", file = "./index.html", append = TRUE)
+  }
+  cat("</div>", file = "./index.html", append = TRUE)
+  cat("</body>\n", file = "./index.html", append = TRUE)
+  cat("</html>\n", file = "./index.html", append = TRUE)
+}
+
+
+# this one works.
+
+
+### Create the page for each of the three sets of cards & scp to cloud:
+make_page(cards1)
+scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards
+
+make_page(cards2)
+scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part2
+
+make_page(cards3)
+scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part3
+
+
+
+
+
+### a few more command line things:
+rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images
+
+
+cp -a /home/kes/public/kennyshirley.com/public_html/bball_cards/images/. /home/kes/public/kennyshirley.com/public_html/bball_cards_part2/images/
+  
+  cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/front/291-107387RepFr.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/front/291-107387RepFr.jpg
+cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/back/291-12Bk.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/back/291-12Bk.jpg
+
+
+# python -m http.server 8000
+
+
+
+
+
+
+# cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+#                     sheet = "all_cards")
+# cards <- as.data.frame(cards)
+
+# # use 2 digits for YoB group label.
+# for (i in 1:9) {
+#   yob <- sapply(strsplit(cards$group, split = "_"), "[", 2) == i
+#   sel <- !is.na(yob) & yob
+#   cards$group[sel] <- paste("bbwaa", sprintf("%02s", i), sep = "_")
+# }
+
+
+
+# look at groups:
+players %>%
+  group_by(group) %>% 
+  summarize(n_players = n(), 
+            total_price = sum(total_price), 
+            total_cards = sum(n), 
+            own = sum(own)) %>% 
+  as.data.frame()
+
+players <- players %>%
+  mutate(g = case_when(group %in% c("bbwaa_01", "retired_lock", "current_lock") ~ "first_ballot", 
+                       group %in% paste("bbwaa", sprintf("%02d", 2:15), sep = "_") ~ "bbwaa", 
+                       TRUE ~ "vet_or_other"))
+
+players %>% 
+  group_by(g) %>% 
+  summarize(n_players = n(), 
+            total_price = sum(total_price), 
+            total_cards = sum(n), 
+            own = sum(own)) %>% 
+  as.data.frame()
+
+
+players %>% 
+  filter(g == "bbwaa") %>%
+  arrange(desc(total_price)) %>%
+  as.data.frame()
+
+players %>% 
+  filter(g == "vet_or_other") %>%
+  arrange(desc(total_price)) %>%
+  as.data.frame()
+
+
+cards <- cards %>%
+  mutate(g = case_when(group %in% c("bbwaa_01", "retired_lock", "current_lock") ~ "first_ballot", 
+                       group %in% paste("bbwaa", sprintf("%02d", 2:15), sep = "_") ~ "bbwaa", 
+                       TRUE ~ "vet_or_other"))
+
+
+first_ballot <- filter(cards, g == "first_ballot")
+bbwaa <- filter(cards, g == "bbwaa")
+vet <- filter(cards, g == "vet_or_other")
+
+
+bbwaa <- select(bbwaa, -group, -g)
+vet <- select(vet, -group, -g)
+
+# fwrite(bbwaa, file = "data/gsheets_bbwaa.csv")
+# fwrite(vet, file = "data/gsheets_vet.csv")
+
+
+
+
+
+# Show the cost per year
+years %>%
+  ggplot(aes(x = year, y = total_price)) + 
+  geom_point() + 
+  geom_line()
+
+years %>%
+  ggplot(aes(x = year, y = remaining_price)) + 
+  geom_point() + 
+  geom_line()
+
+
+# ### look at lots:
+# lots <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
+#                    sheet = "purchase_history")
+# 
+# # join with cards table:
+# cards <- left_join(cards, lots, by = "lot_name")
+# lots <- lots %>% 
+#   left_join(cards %>%
+#               group_by(lot_name) %>%
+#               summarize(n = n(), 
+#                         total_price = sum(price)), 
+#             by = "lot_name") %>%
+#   mutate(profit = total_price - lot_cost) %>%
+#   as.data.frame()
+# 
+# lots
+# 
+# lot_plot <- lots %>% 
+#   ggplot(aes(x = total_price, y = lot_cost, label = lot_name)) + 
+#   geom_point(alpha = 0.5, size = 2) + 
+#   geom_abline(slope = 1, intercept = 0, lty = 2)
+# 
+# ggplotly(lot_plot)
+
+
+
+
+# compute total cost for collecting cards going back a certain number of years:
+data.frame(year = rev(years$year), 
+           total_cost = cumsum(rev(years$total_price)), 
+           remaining_cost = cumsum(rev(years$remaining_price)))
+
+
+
+
+
+# non-first ballot:
+filter(all, YoB > 1)
+
+filter(all, is.na(YoB))
+
+
+
+
+# look at 1974 cards:
+# tmp <- filter(cards, year == 1974)
+
+# identify all horizontal layouts:
+tmp <- filter(cards, width > height)
+
+# # look at them:
+# cat("<html>\n", file = "~/personal/bball_cards/index.html")
+# cat("<body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
+# for (i in 1:nrow(tmp)) {
+#     cat("<img src='front/", tmp$filename[i], "' >\n",
+#         sep = "", file = "~/personal/bball_cards/index.html", append = TRUE)
+# }
+# cat("</body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
+# cat("</html>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
+
+
+
+# rotate the 80 images that are horizontally laid out and write to disk:
+for (i in 1:nrow(tmp)) {
+  if(!file.exists(paste0("images/rotated/rotated_", tmp$filename[i]))) {
+    card <- image_read(paste0("images/front/", tmp$filename[i]))
+    image_rotate(card, 270) %>%
+      image_write(paste0("images/rotated/rotated_", tmp$filename[i]))
+  }
+}
+
+
+
+
+
+
+
+################################################################################
+
 # [1] Match my list of hall of famers (from baseball reference + HOF vis)
 #     to the Trading Card DataBase list:
 setwd("~/public_git/ToppsCollection")
@@ -297,325 +625,6 @@ for (i in 1878:n_cards) {
 
 
 
-
-
-
-
-
-
-################################################################################
-
-# [3] Create the webpage to show the grid of card fronts
-#     Set this up so that you can show an arbitrary subset of cards
-#  a. first ballot + current + retired 'locks'
-#  b. second ballor or later bbwaa
-#  c. veterans committee + others
-#  So 3 webpages in total
-
-setwd("~/public_git/ToppsCollection")
-library(dplyr)
-library(data.table)
-library(tidyr)
-library(stringr)
-library(rvest)
-library(jpeg)
-library(googlesheets4)
-library(ggplot2)
-library(magick)
-library(plotly)
-
-
-# read the google sheet data:
-google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
-cards1 <- read_sheet(google_docs_url, sheet = "first_ballot_cards")
-cards1 <- as.data.frame(cards1)
-cards2 <- read_sheet(google_docs_url, sheet = "bbwaa_cards")
-cards2 <- as.data.frame(cards2)
-cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
-cards3 <- as.data.frame(cards3)
-
-
-
-### Create the page for a given set of cards:
-# cards <- cards1
-# cards <- cards2
-cards <- cards3
-
-# set own = 0 instead of NA
-cards <- replace_na(cards, list(own = 0))
-
-# measure resolution of each card:
-filename <- sapply(strsplit(cards$front_url, split = "/"), function(x) x[6])
-cards <- mutate(cards, filename = filename)
-
-n_cards <- nrow(cards)
-res <- matrix(NA, n_cards, 2)
-for (i in 1:n_cards) {
-  if (i %% 100 == 0) print(i)
-  img <- readJPEG(paste0("images/front/", filename[i]))
-  res[i, ] <- dim(img)[1:2]
-}
-
-cards <- cards %>%
-  mutate(height = res[, 1], width = res[, 2])
-
-# summarize by player:
-players <- cards %>%
-  group_by(name) %>%
-  summarize(n = n(), 
-            first_year = min(year), 
-            last_year = max(year), 
-            total_price = sum(price), 
-            remaining_price = sum(price[own == 0]), 
-            own = sum(own)) %>%
-  mutate(remain = n - own) %>%
-  arrange(first_year, last_year) %>%
-  as.data.frame()
-
-# summarize by year:
-years <- cards %>%
-  group_by(year) %>%
-  summarize(n = n(), 
-            total_price = sum(price), 
-            remaining_price = sum(price[own == 0]), 
-            own = sum(own)) %>%
-  mutate(remain = n - own) %>%
-  as.data.frame()
-
-
-# count number of unique players and years:
-n_players <- lu(cards$name)
-n_years <- lu(cards$year)
-
-# set up 'class' for the opacity toggle:
-cards$class <- ifelse(cards$own == 1, "own", "dont-own")
-
-# Now, create the grid layout:
-cat("<html>\n", file = "./index.html")
-cat("<head>\n", file = "./index.html", append = TRUE)
-cat("<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>\n", 
-    file = "./index.html", append = TRUE)
-cat("<script src='code/toggle_opacity.js'></script>\n", 
-    file = "./index.html", append = TRUE)
-cat("</head>\n", file = "./index.html", append = TRUE)
-cat("<body>\n", file = "./index.html", append = TRUE)
-cat("<div>\n", 
-    "<button class='allbutton'>Show all cards</button>\n", 
-    "<br>\n", 
-    "<button class='ownbutton'>Show cards I own</button>\n",
-    "</div>\n", sep = "", file = "./index.html", append = TRUE)
-cat("<div style='width: 9000px'>", file = "./index.html", 
-    append = TRUE)
-cat("<table><tr>", file = "./index.html", append = TRUE)
-for (i in 1:n_years) {
-  cat("<td style='width:100px; text-align:center'>", 1951 + i, "</td>", file = "./index.html", 
-      append = TRUE)
-}
-cat("</tr></table>", file = "./index.html", append = TRUE)
-for (i in 1:n_players) {
-  tmp <- filter(cards, name == players$name[i])
-  for (j in 1:n_years) {
-    if ((1951 + j) %in% tmp$year) {
-      cat("<a href='https://www.tcdb.com", tmp$url[tmp$year == 1951 + j], 
-          "' style='text-decoration:none;'>", 
-          file = "./index.html", append = TRUE, sep = "")
-      if (tmp$height[tmp$year == 1951 + j] <= tmp$width[tmp$year == 1951 + j]) {  # get the rotated version
-        cat("<img src='images/rotated/rotated_", tmp$filename[tmp$year == 1951 + j], 
-            "' height=140px width=100px class='", 
-            tmp$class[tmp$year == 1951 + j], "'>\n", 
-            sep = "", file = "./index.html", append = TRUE)
-      } else {
-        cat("<img src='images/front/", tmp$filename[tmp$year == 1951 + j], 
-            "' height=140px width=100px class='", 
-            tmp$class[tmp$year == 1951 + j], "'>\n", 
-            sep = "", file = "./index.html", append = TRUE)
-      }
-      cat("</a>", file = "./index.html", append = TRUE)
-    } else {
-      cat("<img src='images/blank.jpg' height=140px width=100px>\n", 
-          file = "./index.html", append = TRUE)
-    }
-  }
-  cat("<br>\n", file = "./index.html", append = TRUE)
-}
-cat("</div>", file = "./index.html", append = TRUE)
-cat("</body>\n", file = "./index.html", append = TRUE)
-cat("</html>\n", file = "./index.html", append = TRUE)
-
-# this one works.
-
-
-
-scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards
-scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part2
-scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part3
-
-
-
-rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images
-
-
-cp -a /home/kes/public/kennyshirley.com/public_html/bball_cards/images/. /home/kes/public/kennyshirley.com/public_html/bball_cards_part2/images/
-
-
-
-# python -m http.server 8000
-
-
-
-
-
-
-# cards <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
-#                     sheet = "all_cards")
-# cards <- as.data.frame(cards)
-
-# # use 2 digits for YoB group label.
-# for (i in 1:9) {
-#   yob <- sapply(strsplit(cards$group, split = "_"), "[", 2) == i
-#   sel <- !is.na(yob) & yob
-#   cards$group[sel] <- paste("bbwaa", sprintf("%02s", i), sep = "_")
-# }
-
-
-
-# look at groups:
-players %>%
-  group_by(group) %>% 
-  summarize(n_players = n(), 
-            total_price = sum(total_price), 
-            total_cards = sum(n), 
-            own = sum(own)) %>% 
-  as.data.frame()
-
-players <- players %>%
-  mutate(g = case_when(group %in% c("bbwaa_01", "retired_lock", "current_lock") ~ "first_ballot", 
-                       group %in% paste("bbwaa", sprintf("%02d", 2:15), sep = "_") ~ "bbwaa", 
-                       TRUE ~ "vet_or_other"))
-
-players %>% 
-  group_by(g) %>% 
-  summarize(n_players = n(), 
-            total_price = sum(total_price), 
-            total_cards = sum(n), 
-            own = sum(own)) %>% 
-  as.data.frame()
-
-
-players %>% 
-  filter(g == "bbwaa") %>%
-  arrange(desc(total_price)) %>%
-  as.data.frame()
-
-players %>% 
-  filter(g == "vet_or_other") %>%
-  arrange(desc(total_price)) %>%
-  as.data.frame()
-
-
-cards <- cards %>%
-  mutate(g = case_when(group %in% c("bbwaa_01", "retired_lock", "current_lock") ~ "first_ballot", 
-                       group %in% paste("bbwaa", sprintf("%02d", 2:15), sep = "_") ~ "bbwaa", 
-                       TRUE ~ "vet_or_other"))
-
-
-first_ballot <- filter(cards, g == "first_ballot")
-bbwaa <- filter(cards, g == "bbwaa")
-vet <- filter(cards, g == "vet_or_other")
-
-
-bbwaa <- select(bbwaa, -group, -g)
-vet <- select(vet, -group, -g)
-
-# fwrite(bbwaa, file = "data/gsheets_bbwaa.csv")
-# fwrite(vet, file = "data/gsheets_vet.csv")
-
-
-
-
-
-# Show the cost per year
-years %>%
-  ggplot(aes(x = year, y = total_price)) + 
-  geom_point() + 
-  geom_line()
-
-years %>%
-  ggplot(aes(x = year, y = remaining_price)) + 
-  geom_point() + 
-  geom_line()
-
-
-# ### look at lots:
-# lots <- read_sheet("https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing", 
-#                    sheet = "purchase_history")
-# 
-# # join with cards table:
-# cards <- left_join(cards, lots, by = "lot_name")
-# lots <- lots %>% 
-#   left_join(cards %>%
-#               group_by(lot_name) %>%
-#               summarize(n = n(), 
-#                         total_price = sum(price)), 
-#             by = "lot_name") %>%
-#   mutate(profit = total_price - lot_cost) %>%
-#   as.data.frame()
-# 
-# lots
-# 
-# lot_plot <- lots %>% 
-#   ggplot(aes(x = total_price, y = lot_cost, label = lot_name)) + 
-#   geom_point(alpha = 0.5, size = 2) + 
-#   geom_abline(slope = 1, intercept = 0, lty = 2)
-# 
-# ggplotly(lot_plot)
-
-  
-
-
-# compute total cost for collecting cards going back a certain number of years:
-data.frame(year = rev(years$year), 
-           total_cost = cumsum(rev(years$total_price)), 
-           remaining_cost = cumsum(rev(years$remaining_price)))
-
-
-
-
-
-# non-first ballot:
-filter(all, YoB > 1)
-
-filter(all, is.na(YoB))
-
-
-
-
-# look at 1974 cards:
-# tmp <- filter(cards, year == 1974)
-
-# identify all horizontal layouts:
-tmp <- filter(cards, width > height)
-
-# # look at them:
-# cat("<html>\n", file = "~/personal/bball_cards/index.html")
-# cat("<body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
-# for (i in 1:nrow(tmp)) {
-#     cat("<img src='front/", tmp$filename[i], "' >\n",
-#         sep = "", file = "~/personal/bball_cards/index.html", append = TRUE)
-# }
-# cat("</body>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
-# cat("</html>\n", file = "~/personal/bball_cards/index.html", append = TRUE)
-
-
-
-# rotate the 80 images that are horizontally laid out and write to disk:
-for (i in 1:nrow(tmp)) {
-  if(!file.exists(paste0("images/rotated/rotated_", tmp$filename[i]))) {
-    card <- image_read(paste0("images/front/", tmp$filename[i]))
-    image_rotate(card, 270) %>%
-      image_write(paste0("images/rotated/rotated_", tmp$filename[i]))
-  }
-}
 
 
 
