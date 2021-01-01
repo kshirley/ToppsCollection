@@ -17,6 +17,8 @@ library(jpeg)
 library(googlesheets4)
 library(ggplot2)
 library(magick)
+lu <- function(x) length(unique(x))
+su <- function(x) sort(unique(x))
 
 
 # read the google sheet data:
@@ -140,26 +142,30 @@ make_page <- function(cards) {
 
 ### Create the page for each of the three sets of cards & scp to cloud:
 make_page(cards1)
-scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards
+# scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards
 
 make_page(cards2)
-scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part2
+# scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part2
 
 make_page(cards3)
-scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part3
+# scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part3
 
 
 
 
 
 ### a few more command line things:
-rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images
+# rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images
 
 
-cp -a /home/kes/public/kennyshirley.com/public_html/bball_cards/images/. /home/kes/public/kennyshirley.com/public_html/bball_cards_part2/images/
+
+# rsync -avzn kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images ~/public_git/ToppsCollection/images/
+
+
+# cp -a /home/kes/public/kennyshirley.com/public_html/bball_cards/images/. /home/kes/public/kennyshirley.com/public_html/bball_cards_part2/images/
   
-  cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/front/291-107387RepFr.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/front/291-107387RepFr.jpg
-cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/back/291-12Bk.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/back/291-12Bk.jpg
+# cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/front/291-107387RepFr.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/front/291-107387RepFr.jpg
+# cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/back/291-12Bk.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/back/291-12Bk.jpg
 
 
 # python -m http.server 8000
