@@ -37,7 +37,9 @@ df <- df %>%
   left_join(data.frame(name = unique(df$name), last_name))
 
 
-
+# set the user agent:
+a <- "Mozilla/5.0 (iPad; U; CPU OS 3_2_1 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Mobile/7B405"
+httr::set_config(user_agent(a))
 
 ### First try, just wrap the call in a tryCatch and see how many I get:
 tmp <- vector("list", nrow(df))
@@ -51,10 +53,10 @@ for (i in 1:nrow(df)) {
                 "+", 
                 tolower(df$last_name[i]), 
                 "&_in_kw=4&_ex_kw=&_sacat=0&LH_Sold=1&_udlo=&_udhi=&_samilow=&_samihi=&_sadis=15&_stpos=07079&_sargn=-1%26saslc%3D1&_salic=1&_fss=1&_fsradio=%26LH_SpecificSeller%3D1&_saslop=1&_sasl=gregmorriscards&_sop=13&_dmd=1&_ipg=200&LH_Complete=1&_fosrp=1")
-  
-  
-  try(tmp[[i]] <- read_html(x = url))
+
+  try(tmp[[i]] <- read_html(x = url(url)))
 }
+
 
 # OK, that took about 20 minutes to loop through all 1316 cards.
 # Many errors, but also some successes.
@@ -132,16 +134,30 @@ for (i in 1:nrow(df)) {
   date <- gsub("\r", "", date, fixed = TRUE)
   date <- gsub("\t", "", date, fixed = TRUE)
   date <- as.Date(date, format = "%b-%d %H:%M")
+  date <- date - 365  # correct for every date being 2021 by accident.
   
   # get it in a data frame:
   results[[i]] <- data.frame(title, date, bids, price)
 }
 
-
+# bind the rows together:
 out <- bind_rows(results)
 
-fwrite(out, file = "data/card_prices.csv")
+# fix the year for the past few days:
+sel <- out$date < as.Date("2020-01-05")
+out$date[sel] <- out$date[sel] + 366
 
+# get rid of old stuff that overlaps the previous data pull:
+out_old <- fread("data/card_prices.csv", data.table = FALSE)
+out_all <- bind_rows(out_old, out)
+out_all <- unique(out_all)
+
+# plot frequency by date:
+out_all %>%
+  ggplot(aes(x = date)) + 
+  geom_bar(stat = "count")
+
+fwrite(out, file = "data/card_prices_through_2021-01-04.csv")
 fwrite(df, file = "data/card_price_list.csv")
 
 
@@ -159,7 +175,7 @@ library(stringr)
 library(googlesheets4)
 
 # read in the data:
-data <- fread("data/card_prices.csv", data.table = FALSE)
+data <- fread("data/card_prices_through_2021-01-04.csv", data.table = FALSE)
 data$year <- as.integer(substr(data$title, 1, 4))
 
 # get the card number:
@@ -188,7 +204,11 @@ data <- mutate(data, condition = condition)
 # Put it together:
 data <- select(data, name, year, number, condition, date, bids, price)
 
-fwrite(data, file = "data/card_prices_clean.csv")
+fwrite(data, file = "data/card_prices_clean_through_2021-01-04.csv")
+
+
+
+
 
 
 ################################################################################
@@ -204,7 +224,7 @@ library(googlesheets4)
 library(ggplot2)
 
 # read in the data:
-data <- fread("data/card_prices_clean.csv", data.table = FALSE)
+data <- fread("data/card_prices_clean_through_2021-01-04.csv", data.table = FALSE)
 
 # read in the metadata:
 df <- fread("data/card_price_list.csv", data.table = FALSE)
@@ -429,6 +449,9 @@ filter(data, name == "Ryne Sandberg") %>% arrange(condition, desc(price))
 
 
 
+
+
+
 ################################################################################
 
 # [5] List the 2007 cards by group and price:
@@ -586,6 +609,9 @@ cards %>% group_by(year) %>%
   as.data.frame()
 
   
+
+
+
 ################################################################################
 
 # get prices for 1958 topps and compare to my list:
@@ -644,6 +670,10 @@ filter(x, grepl("YL", description))
 
 
 filter(x, card_number == 25)
+
+
+
+
 
 
 ### Look at 1979 Topps:
