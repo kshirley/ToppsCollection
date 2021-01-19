@@ -13,7 +13,7 @@ library(ggplot2)
 library(magick)
 lu <- function(x) length(unique(x))
 su <- function(x) sort(unique(x))
-
+count.na <- function(x) sum(is.na(x))
 
 # read the google sheet data:
 google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
@@ -92,7 +92,8 @@ for (i in 1:nrow(yr)) {
         .[[1]] %>%
         html_table() %>%
         head(n = length(team_names))
-      st <- data.frame(year = yr$year[i], team = team_names, wins = wl$W, losses = wl$L)
+      st <- data.frame(year = yr$year[i], league = league[j], 
+                       team = team_names, wins = wl$W, losses = wl$L)
       standings[[counter]] <- st
       counter <- counter + 1
     } else {
@@ -100,8 +101,8 @@ for (i in 1:nrow(yr)) {
         if (length(s[[k]]) > 0) {
           st <- s[[k]] %>% .[[1]] %>% html_table() %>% 
             select(team = Tm, wins = W, losses = L) %>%
-            mutate(year = yr$year[i]) %>%
-            select(year, team:losses)
+            mutate(year = yr$year[i], league = league[j]) %>%
+            select(year, league, team:losses)
           standings[[counter]] <- st
           counter <- counter + 1
         }
@@ -114,17 +115,70 @@ for (i in 1:nrow(yr)) {
 # bind the rows together:
 x <- bind_rows(standings)
 
-fwrite(x, file = "data/yearly_standings.csv")
+# fwrite(x, file = "data/yearly_standings.csv")
 
+
+# read in the edited file from google sheets:
+yr_sheet <- read_sheet(google_docs_url, sheet = "teams_by_year")
+yr_sheet <- as.data.frame(yr_sheet)
+yr_sheet$year <- as.integer(yr_sheet$year)
+
+new <- yr_sheet %>%
+  left_join(select(x, year, team, league), by = c("year", "team"))
+
+new <- select(new, year, league, team:set_url)
+
+fwrite(new, file = "data/yearly_teams_with_league.csv")
+
+
+
+
+
+
+################################################################################
+
+# [2] Read in both files:
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(rvest)
+library(jpeg)
+library(googlesheets4)
+library(ggplot2)
+library(magick)
+lu <- function(x) length(unique(x))
+su <- function(x) sort(unique(x))
+
+
+# read in the files:
+yearly_standings <- fread("data/yearly_standings.csv", data.table = FALSE)
+yearly_teams <- fread("data/yearly_team_list.csv", data.table = FALSE)
 
 yearly_teams %>%
   group_by(team) %>%
   summarize(n_sets = n()) %>%
-  full_join(x %>% group_by(team) %>%
+  full_join(yearly_standings %>% 
+              group_by(team) %>%
               summarize(n_yrs = n()), 
             by = "team") %>%
   as.data.frame() %>%
   arrange(desc(n_sets))
+
+out <- full_join(yearly_teams, yearly_standings, 
+                 by = c("year", "team")) %>%
+  select(year, team, wins, losses, remove, url)
+
+fwrite(out, file = "data/sets_joined_with_standings.csv")
+
+
+### Add AL or NL to each team-year:
+
+# ...
+
+
 
 
 

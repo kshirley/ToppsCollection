@@ -1,0 +1,28 @@
+card    number	 name
+1	15	 Joey Votto
+2	20	 Madison Bumgarner
+3	45	 Carlos Beltran
+4	50	 Yu Darvish
+5	51	 Ryan Howard
+6	73	 Freddie Freeman
+7	83	 David Wright
+8	86	 Tim Hudson
+9	100	 Clayton Kershaw
+10	125	 Troy Tulowitzki
+11	136	 Manny Machado
+12	138	 Tim Lincecum
+13	163	 Chase Utley
+14	175	 Adrian Beltre
+15	178	 Christian Yelich
+16	200	 Miguel Cabrera
+17	207	 Bryce Harper
+18	250	 Evan Longoria
+19	262	 Ryan Braun
+20	267	 Zack Greinke
+21	275	 Buster Posey
+22	300	 Mike Trout
+23	307	 Mark Teixeira
+24	325	 Felix Hernandez
+25	350	 Yasiel Puig
+
+

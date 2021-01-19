@@ -154,6 +154,7 @@ make_page(cards3)
 
 
 
+
 ### a few more command line things:
 # rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images
 

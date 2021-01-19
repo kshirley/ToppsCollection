@@ -1,0 +1,61 @@
+year	number	name
+1995	7	Trevor Hoffman
+1995	10	Matt Williams
+1995	11	Sammy Sosa
+1995	55	Edgar Martinez
+1995	70	Juan Gonzalez
+1995	104	Kenny Lofton
+1995	180	Raul Mondesi
+1995	297	Curt Schilling
+1995	355	Fred McGriff
+1995	404	Omar Vizquel
+1995	419	Vince Coleman
+1995	629	Darryl Strawberry
+1996	1	Tony Gwynn STP
+1996	2	Mike Piazza STP
+1996	3	Greg Maddux STP
+1996	5	Larry Walker STP
+1996	45	Albert Belle
+1996	60	David Justice
+1996	65	Mike Mussina
+1996	80	Gary Sheffield
+1996	84	Omar Vizquel
+1996	115	Joe Carter
+1996	128	Curt Schilling
+1996	175	Raul Mondesi
+1996	212	Billy Wagner
+1996	251	Lee Smith
+1996	252	Sammy Sosa
+1996	263	Vince Coleman
+1996	272	Tim Raines
+1996	275	Andre Dawson
+1996	289	Roberto Alomar
+1996	293	Barry Larkin
+1996	299	Will Clark
+1996	306	Craig Biggio
+1996	313	Trevor Hoffman
+1996	325	Juan Gonzalez
+1996	329	Bobby Bonilla
+1996	356	Ryne Sandberg
+1996	357	Harold Baines
+1996	360	Matt Williams
+1996	362	Jose Canseco
+1996	363	Larry Walker
+1996	380	Jeff Bagwell
+1996	389	Fred McGriff
+1996	393	Cecil Fielder
+1996	395	Rafael Palmeiro
+1996	400	Manny Ramirez
+1996	420	Kenny Lofton
+1996	434	Scott Rolen
+1997	69	Albert Belle
+1997	92	Carlos Delgado
+1997	173	Omar Vizquel
+1997	241	Julio Franco
+1997	268	Scott Rolen
+1997	334	Tim Raines
+1997	350	Kenny Lofton
+1997	374	Bobby Bonilla
+1997	385	Matt Williams
+1997	463	Paul Molitor SH
+1997	465	Barry Bonds SH
