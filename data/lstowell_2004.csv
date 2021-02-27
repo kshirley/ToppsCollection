@@ -1,0 +1,25 @@
+name,year,number,price,own,type,ebay
+Tom Glavine,2004,13,0.34,0,first_ballot,1
+Frank Thomas,2004,49,0.2,0,first_ballot,1
+Chipper Jones,2004,390,0.45,0,first_ballot,1
+Ivan Rodriguez,2004,500,0.28,0,first_ballot,1
+Miguel Cabrera,2004,575,0.4,0,first_ballot,1
+David Ortiz,2004,623,0.45,0,first_ballot,1
+Trevor Hoffman,2004,386,0.28,0,bbwaa,1
+Edgar Martinez,2004,388,0.28,0,bbwaa,1
+Jeff Bagwell,2004,438,1.03,0,bbwaa,1
+Roberto Alomar,2004,456,0.99,0,bbwaa,1
+Larry Walker,2004,512,0.3,0,bbwaa,1
+Curt Schilling,2004,125,0.2,0,vet_or_other,1
+Mark Buehrle,2004,127,0.28,0,vet_or_other,1
+Omar Vizquel,2004,143,0.29,0,vet_or_other,1
+Sammy Sosa,2004,368,0.5,0,vet_or_other,1
+Raul Mondesi,2004,402,0.28,0,vet_or_other,1
+Chase Utley,2004,468,0.35,0,vet_or_other,1
+Kenny Lofton,2004,508,0.28,0,vet_or_other,1
+Carlos Beltran,2004,516,0.2,0,vet_or_other,1
+Roger Clemens,2004,518,0.55,0,vet_or_other,1
+Mark Teixeira,2004,527,0.3,0,vet_or_other,1
+Scott Rolen,2004,582,0.2,0,vet_or_other,1
+Juan Gonzalez,2004,604,0.2,0,vet_or_other,1
+Rafael Palmeiro,2004,620,0.32,0,vet_or_other,1

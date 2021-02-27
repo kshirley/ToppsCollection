@@ -1,0 +1,11 @@
+name,year,number,price,own,type,ebay
+Clayton Kershaw,2013,22,1,0,first_ballot,1
+Justin Verlander,2013,35,1.25,0,first_ballot,1
+Max Scherzer,2013,37,1,0,first_ballot,1
+Albert Pujols,2013,350,1.5,0,first_ballot,1
+David Ortiz,2013,595,0.6,0,first_ballot,1
+Joey Votto,2013,19,0.99,0,vet_or_other,1
+Chase Utley,2013,26,0.99,0,vet_or_other,1
+Buster Posey,2013,128,1.5,0,vet_or_other,1
+Alex Rodriguez,2013,213,1.5,0,vet_or_other,1
+David Wright,2013,400,0.54,0,vet_or_other,1

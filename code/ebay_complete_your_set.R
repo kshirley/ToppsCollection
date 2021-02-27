@@ -389,6 +389,16 @@ years <- 2013:2016
 url <- "https://www.ebay.com/itm/1998-1999-2000-2002-Topps-Baseball-Cards-Complete-Your-Set-Lot-U-Pick-30/112425433078?hash=item1a2d13f7f6:g:MtIAAOSwFmtcwQWm"
 years <- c(1998:2000, 2002)
   
+
+url <- "https://www.ebay.com/itm/2008-2009-2011-Topps-Baseball-Star-Cards-Complete-Your-Set-U-Pick-1/114260790121"
+years <- c(2008, 2009, 2011)
+
+url <- "https://www.ebay.com/itm/2000-Topps-Baseball-Star-Cards-Complete-Your-Set-U-Pick-1/114279271050"
+years <- 2000
+
+url <- "https://www.ebay.com/itm/2005-2006-Topps-Baseball-Star-Cards-Complete-Your-Set-U-Pick-1/114279298802"
+years <- 2005:2006
+
 # get the list of cards:
 page <- read_html(url)
 
@@ -417,6 +427,8 @@ offer <- data.frame(year = rep(years, sapply(nl, length)),
   unique()
 
 offer$number <- as.integer(offer$number)
+offer <- filter(offer, !is.na(number), number < 1000)
+
 
 # save as a data frame:
 df <- my_cards %>%
@@ -430,11 +442,71 @@ filter(df, ebay == 1)
 # 54 for 93-97 [x - done]
 # 21 for 13-17
 # 44 for 99-02
-
+# 11 for 08,09,11 stars:
 
 fwrite(filter(df, ebay == 1), file = "data/alyssa_93_97.csv")
 fwrite(filter(df, ebay == 1), file = "data/alyssa_2013_2017.csv")
 fwrite(filter(df, ebay == 1), file = "data/alyssa_99_02.csv")
+fwrite(filter(df, ebay == 1), file = "data/alyssa_08-09-11-stars.csv")
+
+#               name year number price own         type ebay
+# 1   Miguel Cabrera 2008     10  1.47   0 first_ballot    1
+# 2    Ichiro Suzuki 2008    320  1.28   0 first_ballot    1
+# 3      David Ortiz 2009     50  0.40   0 first_ballot    1
+# 4   Mariano Rivera 2009     60  1.00   0 first_ballot    1
+# 5      Derek Jeter 2009    353  1.50   0 first_ballot    1
+# 6      John Smoltz 2009    355  1.00   0 first_ballot    1
+# 7    Chipper Jones 2009    475  1.00   0 first_ballot    1
+# 8  Clayton Kershaw 2009    575  1.25   0 first_ballot    1
+# 9    Roger Clemens 2008    105  0.85   0 vet_or_other    1
+# 10  Alex Rodriguez 2009      1  0.95   0 vet_or_other    1
+# 11      Joey Votto 2009    390  1.00   0 vet_or_other    1
+
+
+#            name year number price own         type ebay
+# 1 Cal Ripken Jr 2000      4  1.10   0 first_ballot    1
+# 2   Derek Jeter 2000     15  1.25   0 first_ballot    1
+# 3  Mark McGwire 2000      1  1.00   0 vet_or_other    1
+
+#               name year number price own         type ebay
+# 1   Ken Griffey Jr 2005    440  0.49   0 first_ballot    1
+# 2      Derek Jeter 2005    600  1.25   0 first_ballot    1
+# 3 Justin Verlander 2006    641  4.00   0 first_ballot    1
+# 4     David Wright 2005    330  1.00   0 vet_or_other    1
+# 5  Felix Hernandez 2005    688  0.70   0 vet_or_other    1
+
+
+# Look briefly at:
+# https://www.ebay.com/itm/2005-Topps-1-250-Baseball-card-PICK-Choose-Player-Complete-your-set/143783091715?_trkparms=aid%3D1110006%26algo%3DHOMESPLICE.SIM%26ao%3D1%26asc%3D20140131123730%26meid%3D6667debac0184892a130e6e1e32d4b1e%26pid%3D100167%26rk%3D3%26rkt%3D15%26sd%3D114279298802%26itm%3D143783091715%26pmt%3D0%26noa%3D1%26pg%3D5411%26algv%3DDefaultOrganic&_trksid=p5411.c100167.m2940
+filter(my_cards, year == 2005, own == 0) %>% select(name:remaining_price, type) %>%
+  arrange(as.integer(number))
+
+filter(my_cards, year == 1999, own == 0) %>% select(name:remaining_price, type) %>%
+  arrange(as.integer(number))
+
+
+# 2014 stars:
+offer <- data.frame(year = 2014, 
+                    number = c(100, 103, 113, 390, 557), 
+                    ebay = 1)
+years <- 2014
+df <- my_cards %>%
+  filter(own == 0, year %in% years) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0))
+
+filter(df, ebay == 1)
+
+#           name year number price own         type ebay
+# 1 Bryce Harper 2014    100     1   0 vet_or_other    1
+
+
+cl <- fread("data/checklists_1952_2020.csv", data.table = FALSE)
+inner_join(cl, offer, by = c("year", "number"))
+
+
 
 # read the lists back in:
 a1 <- fread("data/alyssa_93_97.csv", data.table = FALSE)
@@ -465,6 +537,7 @@ add <- filter(z, grepl("Tony Gwynn STP", name)) %>%
 # filter(z, grepl("Anderson", name))
 # filter(z, number == 463)
 # filter(cl, year == 1996) %>% head(10)
+
 
 
 a1 %>%
@@ -538,11 +611,17 @@ o2 %>%
   fwrite("data/alyssa_o2.txt", sep = "\t")
 
 
+
+
+
+
+
+
 ################################################################################
 
 # [4] Read in 1990, 1992 availability from seller:
-#     https://www.ebay.com/itm/1990-1991-1992-Topps-Baseball-Cards-Complete-Your-Set-U-Pick-15-Cards-NM-MT/333774117708?_trkparms=aid%3D555021%26algo%3DPL.SIMRVI%26ao%3D1%26asc%3D20190711100440%26meid%3D15fc71a5872f4f5fa75f066bf8391261%26pid%3D100752%26rk%3D5%26rkt%3D17%26mehot%3Dpf%26sd%3D233850924989%26itm%3D333774117708%26pmt%3D1%26noa%3D0%26pg%3D2047675%26algv%3DSimplRVIAMLv5WebWithPLRVIOnTopCombiner&_trksid=p2047675.c100752.m1982
 #     'etsfan1'
+#     https://www.ebay.com/itm/1990-1991-1992-Topps-Baseball-Cards-Complete-Your-Set-U-Pick-15-Cards-NM-MT/333774117708?_trkparms=aid%3D555021%26algo%3DPL.SIMRVI%26ao%3D1%26asc%3D20190711100440%26meid%3D15fc71a5872f4f5fa75f066bf8391261%26pid%3D100752%26rk%3D5%26rkt%3D17%26mehot%3Dpf%26sd%3D233850924989%26itm%3D333774117708%26pmt%3D1%26noa%3D0%26pg%3D2047675%26algv%3DSimplRVIAMLv5WebWithPLRVIOnTopCombiner&_trksid=p2047675.c100752.m1982
 
 setwd("~/public_git/ToppsCollection")
 library(dplyr)
@@ -808,65 +887,35 @@ x <- filter(cl, year == 2015, grepl("ASR", name))
 
 
 
+
 ### Now 'dimeboxcards'
-
-url <- "https://www.ebay.com/itm/2020-Topps-Series-1-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/224001891020?hash=item34278d9acc:g:o1IAAOSwNWxes59m"
-years <- 2020
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2020-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/224142529079?hash=item342fef9237:g:pIgAAOSwqDJfT-Ei"
-years <- 2020
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/1990-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223463882085?hash=item34077c3d65:g:eJsAAOSwbURcnUAG"
-years <- 1990
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2016-Topps-Series-1-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223522189186?hash=item340af5ef82:g:jaoAAOSwrLVc4Nom"
-years <- 2016
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2017-Topps-Series-One-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223346517550?hash=item34007d662e:g:U8YAAOSw~VBcTR5e"
-years <- 2017
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2019-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223577887013?hash=item340e47d125:g:pm4AAOSwTU5dIR5G"
-years <- 2019
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2012-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List-Series-1-2/223377769336?hash=item34025a4378:g:pyQAAOSwmuFcXh6Z"
-years <- 2012
-n_blocks <- 1
-
 url <- "https://www.ebay.com/itm/1981-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/224176185065?hash=item3431f11ee9:g:cF4AAOSwomdfdORi"
-years <- 1981
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2008-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List-Series-1-2/223362892671?hash=item340177437f:g:~W0AAOSwJiBcVniX"
-years <- 2008
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2018-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223514832806?hash=item340a85afa6:g:qDMAAOSwu5dc2gwr"
-years <- 2018
-n_blocks <- 1
-
-url <- "https://www.ebay.com/itm/2002-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223505508935?hash=item3409f76a47:g:kUkAAOSwrJRczxeY"
-years <- 2002
-n_blocks <- 1
-
+url <- "https://www.ebay.com/itm/1990-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223463882085?hash=item34077c3d65:g:eJsAAOSwbURcnUAG"
 url <- "https://www.ebay.com/itm/1992-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223395126342?hash=item3403631c46:g:g-AAAOSwUDZcZ3jN"
-years <- 1992
-n_blocks <- 1
-
+url <- "https://www.ebay.com/itm/1995-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223546834932?hash=item340c6dfff4:g:ZukAAOSw2M5c~fgy"
 url <- "https://www.ebay.com/itm/1999-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223581398362?hash=item340e7d655a:g:7XgAAOSwyNtdJUA5"
-years <- 1999
-n_blocks <- 1
-
+url <- "https://www.ebay.com/itm/2000-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223536775948?hash=item340bd4830c:g:RoAAAOSwiyBc8c~f"
+url <- "https://www.ebay.com/itm/2002-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223505508935?hash=item3409f76a47:g:kUkAAOSwrJRczxeY"
+url <- "https://www.ebay.com/itm/2005-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223357527281?hash=item34012564f1:g:Z6QAAOSwEqVcU8mY"
+url <- "https://www.ebay.com/itm/2008-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List-Series-1-2/223362892671?hash=item340177437f:g:~W0AAOSwJiBcVniX"
+url <- "https://www.ebay.com/itm/2010-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223479074025?hash=item3408640ce9:g:GW4AAOSwmP9cr~RY"
 url <- "https://www.ebay.com/itm/2011-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223372870081?hash=item34020f81c1:g:4Y4AAOSwJ8hcW4OP"
-years <- 2011
-n_blocks <- 1
+url <- "https://www.ebay.com/itm/2012-Topps-Baseball-Complete-Your-Set-Pick-25-Cards-From-List-Series-1-2/223377769336?hash=item34025a4378:g:pyQAAOSwmuFcXh6Z"
+url <- "https://www.ebay.com/itm/2016-Topps-Series-1-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223522189186?hash=item340af5ef82:g:jaoAAOSwrLVc4Nom"
+url <- "https://www.ebay.com/itm/2016-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223529104433?hash=item340b5f7431:g:JgcAAOSwp1lc6MXG"
+url <- "https://www.ebay.com/itm/2017-Topps-Series-One-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223346517550?hash=item34007d662e:g:U8YAAOSw~VBcTR5e"
+url <- "https://www.ebay.com/itm/2018-Topps-Series-1-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223513667676?hash=item340a73e85c:g:Bz0AAOSwBQ9c2H6-"
+url <- "https://www.ebay.com/itm/2018-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223514832806?hash=item340a85afa6:g:qDMAAOSwu5dc2gwr"
+url <- "https://www.ebay.com/itm/2019-Topps-Series-1-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223436697817?hash=item3405dd70d9:g:gCAAAOSweaFcfzil"
+url <- "https://www.ebay.com/itm/2019-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/223577887013?hash=item340e47d125:g:pm4AAOSwTU5dIR5G"
+url <- "https://www.ebay.com/itm/2020-Topps-Series-1-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/224001891020?hash=item34278d9acc:g:o1IAAOSwNWxes59m"
+url <- "https://www.ebay.com/itm/2020-Topps-Series-2-Baseball-Complete-Your-Set-Pick-25-Cards-From-List/224142529079?hash=item342fef9237:g:pIgAAOSwqDJfT-Ei"
+
+years <- 1999
+
 
 # get the list of cards:
+n_blocks <- 1
 page <- read_html(url)
 
 x <- page %>%
@@ -916,18 +965,126 @@ filter(df, ebay == 1)
 #  6 for 2017 series 1
 #  4 for 2019 series 2
 #  6 for 1981
-#  9 for 2008
 #  3 for 2018 series 2
 #  3 for 2002
 #  9 for 1992 (25 for $2.50)
 
+#  updated 2021-02-13:
+#  6 for 1981
+#  2 for 1995
+#  5 for 2000 (all vet_or_other)
+#  0 for 2005
+#  6 for 2008 (no first ballot)
+#  0 for 2010
+#  4 for 2016 series 1
+#  0 for 2016 series 2
+#  1 for 2017 series 1
+#  6 for 2018 series 1
+#  1 for 2019 series 1 (verlander)
+#  1 for 2019 series 2 (strasburg)
 
-filter(my_cards, year == 1990, own == 0) %>% 
-  select(name:remaining_price) %>%
-  mutate(number = as.numeric(number)) %>%
-  arrange(number)
 
-filter(cl, year == 1990, grepl("Radin", name))
+
+
+# filter(my_cards, year == 1990, own == 0) %>% 
+#   select(name:remaining_price) %>%
+#   mutate(number = as.numeric(number)) %>%
+#   arrange(number)
+
+# filter(cl, year == 1990, grepl("Radin", name))
+# filter(cl, year == 1981, grepl("AS", name))
+
+#            name year number price own         type ebay
+# 1  Rich Gossage 1981    460  0.15   0        bbwaa    1
+# 2 Bert Blyleven 1981    554  0.40   0        bbwaa    1
+# 3    Tony Perez 1981    575  0.60   0        bbwaa    1
+# 4  Bruce Sutter 1981    590  0.58   0        bbwaa    1
+# 5  Dwight Evans 1981    275  0.90   0 vet_or_other    1
+# 6 Alan Trammell 1981    709  0.40   0 vet_or_other    1
+
+
+extras_81 <- offer %>%
+  inner_join(filter(cl, year == 1981, 
+                    grepl("(LaCock|Future Stars|Kaat|Buckner|Cooper|Gantner|Mike Scott|Concepcion|Griffey|Willie Wilson|AS|Lansford|Madlock|Bonds)", name)))
+
+# offer %>% inner_join(filter(cl, year == 1981)) %>% tail(100)
+# offer %>% inner_join(filter(cl, year == 1981)) %>% head(200)
+
+# get the final list for 1981:
+filter(df, ebay == 1) %>%
+  select(year, number, name) %>%
+  bind_rows(extras_81 %>% select(-ebay)) %>%
+  arrange(as.integer(number)) %>%
+  filter(!duplicated(number), 
+         number %in% c(66, 328) == FALSE) %>%
+  summarize(paste(number, collapse = ", "))
+
+# 1981: 9, 109, 275, 280, 356, 360, 375, 381, 430, 450, 460, 465, 482, 502, 520, 554, 555, 563, 575, 590, 625, 635, 639, 709, 715
+# 25 cards, no dupes
+
+
+
+# 12 cards from 1999
+# need 13 more:
+# extras_99 <-
+
+filter(cl, year == 1999) %>% inner_join(offer) %>% head(200)
+
+filter(cl, year == 1999) %>% inner_join(offer) %>% tail(100)
+
+
+extras_99 <- filter(cl, year == 1999, 
+       grepl("(Mark McGwire|Sosa|Tejada|ASR|Edmonds|Cameron|Damon|Nomar)", name), 
+       !grepl("(HL|LL|AT)",name)) %>%
+  inner_join(offer)
+
+# the 1999 purchase:
+filter(df, ebay == 1) %>%
+  select(year, number, name) %>%
+  bind_rows(select(extras_99, -ebay))
+
+filter(df, ebay == 1) %>%
+  select(year, number, name) %>%
+  bind_rows(select(extras_99, -ebay)) %>%
+  arrange(as.integer(number)) %>%
+  summarize(paste(number, collapse = ", "))
+  
+# 1999: 84, 95, 110, 120, 130, 132, 155, 173, 220, 243, 265, 270, 291, 325, 329, 345, 352, 355, 369, 380, 391, 417, 418, 419, 461
+# 25, no dupes
+
+
+
+# extras from 2018 (need 19 more):
+extras_18 <- offer %>%
+  inner_join(filter(cl, year == 2018, 
+                    grepl("(ASR|Baez|Reynolds|Springer|Markakis|Sabathia|Ichiro|Bautista|Kemp|Ozuna|Fielder|Braun|Guerrero|Freeman|Soto|Torres|Acuna|Judge|Arenado|Lindor|Cole|Altuve|Correa|Tulowitzki|Rendon|Chris Sale|Simmons|Stanton|Puig)", name), 
+                    !grepl("(LL|WS)", name)))
+
+offer %>% inner_join(filter(cl, year == 2018)) %>% 
+  filter(number >= 201)
+
+order_18 <- filter(df, ebay == 1) %>%
+  select(year, number, name) %>%
+  bind_rows(select(extras_18, year, number, name)) %>%
+  arrange(number) %>%
+  filter(!duplicated(number))
+
+order_18 %>%
+  summarize(paste(number, collapse = ", "))
+# 2018: 10, 15, 20, 30, 36, 42, 89, 118, 132, 140, 157, 170, 180, 183, 206, 233, 235, 236, 238, 250, 265, 275, 285, 300, 302
+# 25, no dupes
+
+
+filter(df, ebay == 1)
+
+#                name year number price own         type ebay
+# 1      Mookie Betts 2018    140  1.00   0 first_ballot    1
+# 2        Mike Trout 2018    300  2.99   0 first_ballot    1
+# 3    Cody Bellinger 2018     42  1.85   0 vet_or_other    1
+# 4  Christian Yelich 2018    170  1.00   0 vet_or_other    1
+# 5 Stephen Strasburg 2018    233  0.17   0 vet_or_other    1
+# 6      Buster Posey 2018    250  0.50   0 vet_or_other    1
+
 
 
 
@@ -1088,6 +1245,27 @@ out %>%
   fwrite("data/klively_list.txt", sep = "\t")
 
 
+### read back in the klively order and mark which cards I got:
+klive <- readLines("data/klively_order.txt")
+year <- as.integer(unlist(lapply(klive, strsplit, split = ": "))[seq(1, by = 2, length = 9)])
+nl <- unlist(lapply(klive, strsplit, split = ": "))[seq(2, by = 2, length = 9)]
+number <- as.integer(unlist(strsplit(nl, split = ", ")))
+
+
+klive_order <- data.frame(year = rep(year, str_count(nl, ",") + 1), 
+                          number = number)
+
+my_cards %>% filter(year > 1989) %>%
+  mutate(number = as.integer(number)) %>%
+  inner_join(klive_order, by = c("year", "number")) %>%
+  select(name:remaining_price, type) %>%
+  filter(own == 0) %>%
+  arrange(type, year, number) %>%
+  filter(type == "vet_or_other")
+
+
+
+
 filter(cl, year == 2014, number %in% c(100, 103, 113, 390, 557))
 
 
@@ -1106,6 +1284,625 @@ my_cards %>%
   left_join(offer, by = c("year", "number")) %>%
   replace_na(list(ebay = 0)) %>%
   filter(ebay == 1)
+
+
+
+
+
+
+
+################################################################################
+
+# Get card list from jvo1968:
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(rvest)
+library(tidyr)
+library(stringr)
+library(googlesheets4)
+library(httr)
+
+# get the list of cards that I want to price:
+google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
+cards1 <- read_sheet(google_docs_url, sheet = "first_ballot_cards")
+cards1 <- as.data.frame(cards1)
+cards2 <- read_sheet(google_docs_url, sheet = "bbwaa_cards")
+cards2 <- as.data.frame(cards2)
+cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
+cards3 <- as.data.frame(cards3)
+
+# combine all the cards into one data frame:
+type <- rep(c("first_ballot", "bbwaa", "vet_or_other"), 
+            c(nrow(cards1), nrow(cards2), nrow(cards3)))
+my_cards <- bind_rows(cards1, cards2, cards3)
+my_cards <- replace_na(my_cards, list(own = 0))
+my_cards$type <- type
+
+
+# # alyssa trunk 120 order:
+# o1 <- fread("~/public_git/ToppsCollection/data/alyssa_order_94_97.txt", data.table = FALSE)
+# o2 <- fread("~/public_git/ToppsCollection/data/alyssa_order_99_02.txt", data.table = FALSE)
+# 
+# alyssa_order <- bind_rows(o1, o2) %>%
+#   arrange(year, number)
+# 
+# alyssa_order %>%
+#   left_join(my_cards %>%
+#               filter(year > 1990) %>%
+#               mutate(number = as.integer(number)) %>%
+#               select(name:remaining_price, type), 
+#             by = c("year", "number")) %>%
+#   as.data.frame() %>%
+#   filter(!is.na(type))
+# OK, only missing 2 out 98 intended cards. w clark and r palmeiro 1998 
+
+
+### Now 'jvo1968'
+jvo <- readLines("data/jvo1968_offer.txt")
+yrs <- jvo[seq(1, by = 2, length = 13)]
+num <- strsplit(jvo[seq(2, by = 2, length = 13)], split = ",")
+num <- lapply(num, gsub, pattern = "\\([0-9]+\\)", replacement = "")
+
+offer <- data.frame(year = as.integer(rep(yrs, sapply(num, length))), 
+                    number = as.integer(unlist(num)), 
+                    ebay = 1)
+
+
+z <- my_cards %>%
+  filter(own == 0, year > 1999) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+
+
+# o <- bind_rows(o1, o2) %>%
+#   mutate(alyssa = 1)
+
+z
+#              name year number price own         type ebay alyssa
+# 1     Derek Jeter 2000     15  1.25   0 first_ballot    1     NA
+# 2       Jim Thome 2000    360  0.25   0 first_ballot    1     NA
+# 3     Tom Glavine 2004     13  0.34   0 first_ballot    1     NA
+# 4  Mariano Rivera 2006    110  0.81   0 first_ballot    1     NA
+# 5   Adrian Beltre 2011    302  0.25   0 first_ballot    1     NA
+# 6      Tim Raines 2000     71  0.20   0        bbwaa    1     NA
+# 7      Eric Davis 2000    190  0.20   0 vet_or_other    1     NA
+# 8    Jose Canseco 2000    200  0.20   0 vet_or_other    1     NA
+# 9    Mark Buehrle 2004    127  0.28   0 vet_or_other    1     NA
+# 10  Roger Clemens 2006    151  0.45   0 vet_or_other    1     NA
+# 11   Billy Wagner 2006    207  0.25   0 vet_or_other    1     NA
+# 12  Robinson Cano 2008    136  0.40   0 vet_or_other    1     NA
+# 13   David Wright 2011     15  0.35   0 vet_or_other    1     NA
+# 14     Tim Hudson 2011     77  0.15   0 vet_or_other    1     NA
+# 15    Chase Utley 2011    214  0.43   0 vet_or_other    1     NA
+# 16    Scott Rolen 2011    228  0.15   0 vet_or_other    1     NA
+# 17   Mark Buehrle 2011    231  0.22   0 vet_or_other    1     NA
+# 18   Omar Vizquel 2011    243  0.28   0 vet_or_other    1     NA
+
+
+
+### Now for user 'capeauctions'
+
+# url <- "https://www.ebay.com/itm/Finish-Your-2012-TOPPS-Set-1-660-U-PICK-30/202644042034?_trkparms=aid%3D111001%26algo%3DREC.SEED%26ao%3D1%26asc%3D20160908105057%26meid%3D6762594c342940fc993c329eafe856ca%26pid%3D100675%26rk%3D4%26rkt%3D14%26mehot%3Dnone%26sd%3D383908790498%26itm%3D202644042034%26pmt%3D0%26noa%3D1%26pg%3D2380057&_trksid=p2380057.c100675.m4236&_trkparms=pageci%3Abf9f48ef-6268-11eb-9761-6a6f0f4a49ed%7Cparentrq%3A4fa219f11770a4d362453866fffe2e80%7Ciid%3A1"
+yrs <- 2011
+url <- "https://www.ebay.com/itm/Complete-Finish-Your-2011-TOPPS-Sets-Series-1-2-1-660-U-PICK-30/362591217643"
+
+url <- "https://www.ebay.com/itm/Finish-Your-2008-TOPPS-Sets-Series-1-2-1-660-Updates-1-330-U-PICK-40/362596929821?_trkparms=aid%3D111001%26algo%3DREC.SEED%26ao%3D1%26asc%3D20160908105057%26meid%3D46040ec827a746de8d13ad560519e140%26pid%3D100675%26rk%3D2%26rkt%3D15%26mehot%3Dnone%26sd%3D362624599061%26itm%3D362596929821%26pmt%3D0%26noa%3D1%26pg%3D2380057&_trksid=p2380057.c100675.m4236&_trkparms=pageci%3Aeac13ca1-64db-11eb-adef-f67359843c91%7Cparentrq%3A5fb0501c1770ad3550f91800fff87394%7Ciid%3A1"
+yrs <- 2008
+
+url <- "https://www.ebay.com/itm/Finish-Your-2009-2010-TOPPS-Sets-Series-1-2-1-660-Updates-1-330-U-PICK-30/362624599061"
+yrs <- 2009:2010
+
+url <- "https://www.ebay.com/itm/Complete-Finish-Your-2013-Topps-Set-1-660-Updates-US-1-330-U-PICK-35-/362591217604?hash=item546c1ee7c4"
+yrs <- 2013
+
+url <- "https://www.ebay.com/itm/Complete-Finish-Your-2015-TOPPS-Sets-Series-2-331-701-U-PICK-30-/362609224428?hash=item546d31aaec"
+yrs <- 2015
+
+url <- "https://www.ebay.com/itm/Finish-Your-2012-TOPPS-Set-1-660-U-PICK-30-/202644042034?hash=item2f2e86b132"
+yrs <- 2012
+
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("p") %>%
+  html_text()
+
+# get the number of numbers in each element of the list:
+n_numbers <- sapply(strsplit(tmp, split = "[[:space:]]+"), 
+                    function(x) sum(!is.na(as.numeric(x))))
+
+
+# 
+# tmp[n_numbers > 6]
+# n_numbers
+
+# nums <- which(n_numbers > 10)[1:14]
+# yr_vec <- rep(2009:2010, each = 7)
+
+# nums <- which(n_numbers > 10)
+# yr_vec <- rep(2011, 7)
+
+# nums <- which(n_numbers > 6)[1:7]
+# yr_vec <- rep(2013, 7)
+
+nums <- which(n_numbers > 10)
+yr_vec <- rep(yrs, length(nums))
+
+# now get the numbers themselves:
+num_list <- vector("list", length(yrs))
+for (i in 1:length(yrs)) {
+  l <- lapply(strsplit(tmp[nums][yr_vec == yrs[i]], split = "[[:space:]]+"), as.numeric)
+  num_list[[i]] <- unlist(l) %>% unique()
+}
+
+offer <- data.frame(year = rep(yrs, sapply(num_list, length)), 
+                    number = unlist(num_list), 
+                    ebay = 1)
+
+z <- my_cards %>%
+  filter(own == 0, year %in% yrs) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+z
+
+fwrite(z, file = "data/capeauctions_2009-2010.csv")  # 23 (pick 30 $1.75)
+fwrite(z, file = "data/capeauctions_2011.csv")  # 31 (pick 30 $1.75)
+fwrite(z, file = "data/capeauctions_2008.csv")  # 9 (pick 40 $1.95)
+
+
+
+# checklists:
+list08 <- fread("data/capeauctions_2008.csv", data.table = FALSE)
+list0910 <- fread("data/capeauctions_2009-2010.csv", data.table = FALSE)
+list11 <- fread("data/capeauctions_2011.csv", data.table = FALSE)
+
+cl <- fread("data/checklists_1952_2020.csv", data.table = FALSE)
+
+zz <- offer %>%
+  left_join(cl) %>%
+  as.data.frame()
+
+# Here's 21 more from 2008:
+extras_08 <- filter(zz, grepl("(Braun|Fielder|ASR|Sabathia|Tulow|Giambi|Damon|Zito|Ankiel|Tejada|Matsuzaka|Hart|Weeks|Gwynn|Kerry|Nomar|Kent|Adrian Gonzalez|Howard|Berkman|Ramirez|Sizemore|Morneau|Willis|Sexson|Hardy)", name))
+extras_09 <- filter(zz, grepl("(ASR)", name))
+
+
+bind_rows(select(list08, year, number, name), 
+          select(extras_08, year, number, name)) %>%
+  arrange(number) %>%
+  summarize(paste(number, collapse = ", "))
+
+# 2008: 2, 4, 20, 40, 42, 45, 59, 72, 75, 93, 
+#     129, 170, 175, 193, 199, 207, 225, 239, 240, 269, 
+#     270, 275, 302, 332, 371, 379, 380, 385, 395, 396, 
+#     425, 430, 450, 475, 510, 545, 585, 588, 625, 658
+
+bind_rows(select(list0910, year, number, name), 
+          select(extras_09, year, number, name)) %>%
+  arrange(year, number) %>%
+  summarize(paste(number, collapse = ", "))
+
+
+# 2009: 24, 30, 46, 85, 100, 130, 155, 160, 185, 210, 212, 220, 224, 260, 287, 300, 320, 515
+# 2010: 55, 100, 115, 125, 215, 310, 369, 370, 404, 549, 623, 652
+
+
+list11 %>%
+  select(year, number, name) %>%
+  arrange(number) %>%
+  summarize(paste(number, collapse = ", "))
+
+
+# 2011: 5, 13, 15, 33, 42, 50, 67, 100, 108, 128, 
+#       130, 150, 169, 183, 198, 200, 214, 220, 228, 231, 
+#       243, 253, 275, 277, 302, 315, 360, 450, 515, 530
+
+
+
+
+extras_12 <- filter(zz, grepl("(Braun|Fielder|ASR|Sabathia|Tulow|Giambi|Damon|Zito|Ankiel|Tejada|Matsuzaka|Hart|Weeks|Gwynn|Kerry|Nomar|Kent|Adrian Gonzalez|Howard|Berkman|Ramirez|Sizemore|Morneau|Willis|Sexson|Hardy)", name))
+
+
+bind_rows(select(z, year, number, name), 
+          select(extras_12, year, number, name)) %>%
+  arrange(year, number) %>%
+  summarize(paste(number, collapse = ", "))
+
+# 2012: 1, 16, 30, 50, 60, 69, 87, 89, 96, 106, 
+#       110, 139, 140, 162, 180, 200, 230, 280, 284, 292, 
+#       305, 351, 354, 365, 420, 492, 547, 571, 574, 626
+
+
+my_cards %>%
+  group_by(lot_name) %>%
+  summarize(n = n(), 
+            price = sum(price)) %>%
+  arrange(desc(n)) %>%
+  as.data.frame()
+
+
+
+
+
+
+
+################################################################################
+
+# Get card list from stlbrowns:
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(rvest)
+library(tidyr)
+library(stringr)
+library(googlesheets4)
+library(httr)
+library(purrr)
+
+# get the list of cards that I want to price:
+google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
+cards1 <- read_sheet(google_docs_url, sheet = "first_ballot_cards")
+cards1 <- as.data.frame(cards1)
+cards2 <- read_sheet(google_docs_url, sheet = "bbwaa_cards")
+cards2 <- as.data.frame(cards2)
+cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
+cards3 <- as.data.frame(cards3)
+
+# combine all the cards into one data frame:
+type <- rep(c("first_ballot", "bbwaa", "vet_or_other"), 
+            c(nrow(cards1), nrow(cards2), nrow(cards3)))
+my_cards <- bind_rows(cards1, cards2, cards3)
+my_cards <- replace_na(my_cards, list(own = 0))
+my_cards$type <- type
+
+
+
+
+# list from 'stlbrowns'
+url <- "https://www.ebay.com/itm/2003-TOPPS-LOT-INSERTS-GOLD-TRADED-COMPLETE-YOUR-SET-20-PICKS/203241434218"
+year <- 2003
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("strong") %>%
+  html_text()
+
+# measure number of space-separated words on this page:
+n <- sapply(strsplit(tmp, split = "[[:space:]]+"), length)
+
+# it's elements 4-7 for 2003 topps
+tmp <- gsub(x = tmp, pattern = "&nbsp;", replacement = " ")
+nl <- gsub(x = tmp[4:7], pattern = " picks", replacement = "")
+nl <- strsplit(nl, split = "[[:space:]]+")
+
+x <- lapply(nl, strsplit, split = "\\(") %>%
+  lapply(function(x) sapply(x, "[", 1)) %>%
+  unlist() %>%
+  as.numeric() %>%
+  as.data.frame() %>%
+  rename(number = ".")
+
+picks <- lapply(nl, strsplit, split = "\\(") %>%
+  lapply(function(x) sapply(x, "[", 2)) %>%
+  unlist() %>%
+  gsub(pattern = "\\)", replacement = "")
+
+x$picks <- as.integer(picks)
+
+# fill in 2 picks for 312 and 334:
+x$picks[x$number %in% c(312, 334)] <- 2
+
+# get rid of NA numbers and replace NA picks with 1:
+offer <- filter(x, !is.na(number)) %>%
+  replace_na(list(picks = 1)) %>%
+  mutate(ebay = 1, 
+         year = 2003)
+
+
+z <- my_cards %>%
+  filter(own == 0, year == 2003) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+z
+# OK, for 2003 topps, I can get every card I need for 17.50 + shipping.
+
+
+# stlbrowns has tons of years, and every card, basically.
+# just have to pay a bit more for them...
+
+
+
+
+### 'savageb12' has individual cards from many years, 70 cents/card with
+### > 4 discount, and cheap shipping.
+
+
+
+
+
+### let's get the 1994 and 1992 topps from 'bash5559' 
+
+url <- "https://www.ebay.com/itm/1993-1994-1993-update-Topps-baseball-pick-40-cards-ex-nm/323743207334?hash=item4b60994fa6:g:Rc4AAMXQBuNQ65RN"
+year <- 1994
+
+url <- "https://www.ebay.com/itm/1991-1992-Topps-Baseball-pick-40-comp-your-set-ex-nrmt-plus-1991-topps-traded/323743207322?hash=item4b60994f9a:g:7dwAAMXQya1Q64~f"
+year <- 1992
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("p") %>%
+  html_text()
+
+# 1994
+numbers <- as.integer(unlist(strsplit(tmp[5], split = "-")))
+offer <- data.frame(year = 1994, 
+                    number = numbers, 
+                    ebay = 1)
+
+# 1992
+numbers <- as.integer(unlist(strsplit(tmp[7], split = "-")))
+offer <- data.frame(year = 1992, 
+                    number = numbers, 
+                    ebay = 1)
+
+
+z <- my_cards %>%
+  # filter(own == 0, year == 1994) %>%
+  filter(own == 0, year == 1992) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+z
+
+# 1994 get 22 cards (pick 40)
+
+#             name year number price own         type ebay
+# 1   Rich Gossage 1992    215  0.10   0        bbwaa    1
+# 2  Bert Blyleven 1992    375  0.10   0        bbwaa    1
+# 3     Tim Raines 1992    426  0.50   0        bbwaa    1
+# 4 Edgar Martinez 1992    553  1.00   0        bbwaa    1
+# 5   Carlton Fisk 1992    630  0.30   0        bbwaa    1
+# 6   Craig Biggio 1992    715  0.25   0        bbwaa    1
+# 7      Lee Smith 1992    565  0.20   0 vet_or_other    1
+# 8    Dale Murphy 1992    680  0.15   0 vet_or_other    1
+# 9  Dwight Gooden 1992    725  0.09   0 vet_or_other    1
+
+cl <- fread("data/checklists_1952_2020.csv", data.table = FALSE)
+
+zz <- offer %>%
+  left_join(cl) %>%
+  as.data.frame()
+
+# get extras:
+extras_94 <- filter(zz, grepl("(ASR|Listach|Valenzuela|Bernie|Pedro Martinez|Glavine|Molitor|Thome)", name))
+extras_92 <- filter(zz, grepl("(ASR|FS|AS|DPK|Listach|Valenzuela|Bernie|Glavine|Molitor|Thome)", name))
+
+bind_rows(select(z, name, year, number), 
+          select(extras_94, name, year, number)) %>%
+  arrange(number) %>%
+  pull(number) %>%
+  paste(collapse = ", ")
+
+
+# 1994:  2, 21, 65, 72, 75, 81, 110, 130, 142, 175, 222, 230, 240, 243, 268, 287, 293, 305, 309, 393, 397, 420, 466, 470, 475, 488, 508, 540, 565, 593, 598, 609, 612, 630, 640, 645, 675, 685, 730, 783
+
+
+bind_rows(select(z, name, year, number), 
+          select(extras_92, name, year, number)) %>%
+  mutate(asr = grepl("ASR", name)) %>%
+  arrange(desc(asr)) %>%
+  head(40) %>%
+  arrange(as.integer(number)) %>%
+  pull(number) %>%
+  paste(collapse = ", ")
+
+# 1992: 9, 36, 66, 84, 96, 215, 246, 292, 305, 306, 336, 369, 375, 386, 388, 389, 391, 392, 393, 394, 395, 397, 398, 402, 403, 404, 406, 407, 414, 426, 474, 504, 537, 553, 565, 614, 630, 680, 715, 725
+
+
+
+my_cards %>% 
+  filter(year == 1992) %>% 
+  filter(own == 0) %>% 
+  arrange(as.numeric(number)) %>% 
+  select(name:remaining_price, type) %>% 
+  as.data.frame()
+
+
+
+
+### Now let's get some lists from lstowell178y:
+
+url <- "https://www.ebay.com/itm/2004-Topps-Baseball-You-pick-15-Finish-your-set/302989627782"
+year <- 2004
+
+url <- "https://www.ebay.com/itm/Topps-2006-2007-Base-Cards-You-pick-15-Finish-your-set/301138856342"
+year <- 2006
+
+url <- "https://www.ebay.com/itm/Topps-2013-Series-1-2-Updates-Base-Cards-You-pick-15-Finish-your-set/303555754946"
+year <- 2013
+
+url <- "https://www.ebay.com/itm/Topps-2014-Base-Cards-Series-1-2-Updates-You-pick-15-Finish-your-set/303743453586?hash=item46b8854992:g:1hkAAOSwTzpfmLSJ"
+year <- 2014
+
+url <- "https://www.ebay.com/itm/Topps-2015-Base-Cards-Series-1-2-Updates-You-pick-15-Finish-your-set/254037747843?hash=item3b25d46883:g:6yEAAOSwwjRcHvw4"
+year <- 2015
+
+url <- "https://www.ebay.com/itm/2020-Topps-Series-1-2-Updates-Complete-Your-Set-Pick-15/254659248509?hash=item3b4adfc17d:g:zpgAAOSwXmpe9PXp"
+year <- 2020
+
+
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  #html_nodes("p") %>%
+  html_nodes("div") %>%
+  html_text()
+
+numbers <- strsplit(tmp[1], split = "([[:space:]]+|,)") %>%
+  unlist() %>%
+  as.integer() %>%
+  discard(is.na)
+
+# for 2004:
+numbers <- numbers[-(1:4)]
+
+# for 2006:
+numbers <- numbers[numbers < 700]
+numbers <- c(numbers, 30, 31)
+numbers <- sort(numbers)
+
+# for 2013:
+numbers <- numbers[2:629]
+
+# for 2014:
+numbers <- numbers[2:483]
+
+numbers <- numbers[c(2:284, 286:615)]
+
+# 2020
+numbers <- numbers[5:639]
+
+# set up the offer:
+offer <- data.frame(year = 2020, 
+                    number = numbers, 
+                    ebay = 1)
+
+z <- my_cards %>%
+  filter(own == 0, year == 2020) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+z
+
+fwrite(z, file = "data/lstowell_2004.csv")  # 24 (pick 15 $2.99)
+fwrite(z, file = "data/lstowell_2006.csv")  # 27 (pick 15 $2.59)
+fwrite(z, file = "data/lstowell_2013.csv")  # 10 (pick 15 $3.19)
+fwrite(z, file = "data/lstowell_2020.csv")  #  9 (pick 15 $3.29)
+
+
+z1 <- fread("data/lstowell_2004.csv", data.table = FALSE)
+z2 <- fread("data/lstowell_2006.csv", data.table = FALSE)
+z3 <- fread("data/lstowell_2013.csv", data.table = FALSE)
+z4 <- fread("data/lstowell_2020.csv", data.table = FALSE)
+
+# get the rest of the checklist:
+zz <- offer %>%
+  left_join(cl) %>%
+  as.data.frame()
+
+extras_04 <- filter(zz, grepl("(Torii|Prior|Rollins|Braun|Fielder|ASR|Sabathia|Tulow|Giambi|Damon|Zito|Ankiel|Tejada|Matsuzaka|Hart|Weeks|Gwynn|Kerry|Nomar|Kent|Adrian Gonzalez|Howard|Berkman|Ramirez|Sizemore|Morneau|Willis|Sexson|Hardy)", name))
+
+# 2004:
+bind_rows(select(z1, name, number, year), 
+          select(extras_04, name, number, year)) %>%
+  arrange(as.integer(number)) %>%
+  pull(number) %>%
+  unique() %>%
+  paste(collapse = ", ")
+
+# 2004: 13, 25, 29, 49, 50, 62, 71, 76, 84, 105, 125, 127, 143, 150, 173, 352, 368, 372, 375, 378, 386, 388, 390, 400, 402, 431, 438, 456, 468, 500, 502, 508, 512, 516, 518, 527, 531, 565, 575, 582, 590, 592, 604, 620, 623
+# 45 cards.
+
+extras_06 <- filter(zz, grepl("(Torii|Prior|Rollins|Braun|Fielder|Sheets|ASR|Sabathia|Tulow|Giambi|Damon|Zito|Ankiel|Tejada|Matsuzaka|Hart|Weeks|Gwynn|Kerry|Nomar|Kent|Adrian Gonzalez|Howard|Berkman|Hanley Ramirez|Sizemore|Morneau|Willis|Sexson|Hardy)", name))
+extras_06
+
+bind_rows(select(z2, name, year, number), 
+          select(extras_06, name, year, number)) %>%
+  arrange(as.integer(number)) %>%
+  pull(number) %>%
+  unique() %>%
+  paste(collapse = ", ")
+
+# 2006: 3, 13, 18, 21, 23, 39, 48, 50, 65, 72, 80, 82, 90, 110, 121, 122, 130, 132, 142, 151, 178, 185, 200, 203, 205, 207, 222, 230, 248, 265, 327, 335, 345, 354, 359, 362, 387, 388, 394, 398, 400, 405, 410, 419, 420, 431, 445, 451, 455, 500, 520, 524, 540, 555, 560, 570, 573, 585, 620, 639
+# 60 cards.
+
+
+# extras_13 <- filter(zz, grepl("(ASR)", name))
+# extras_13
+
+extras_13 <- filter(zz, grepl("(Torii|Prior|Rollins|Braun|Fielder|Sheets|ASR|Sabathia|Tulow|Giambi|Damon|Zito|Ankiel|Tejada|Matsuzaka|Hart|Weeks|Gwynn|Kerry|Nomar|Kent|Adrian Gonzalez|Howard|Berkman|Hanley Ramirez|Sizemore|Morneau|Willis|Sexson|Hardy)", name))
+extras_13
+
+# need to get rid of 10 of these:
+bind_rows(select(z3, name, year, number), 
+          select(extras_13, name, year, number)) %>%
+  arrange(as.integer(number)) %>%
+  filter(number %in% c(23, 246, 272, 283, 359, 485, 496, 533, 575, 453) == FALSE) %>%
+  pull(number) %>%
+  unique() %>%
+  paste(collapse = ", ")
+
+# 2013: 6, 8, 11, 19, 22, 26, 35, 37, 44, 70, 75, 118, 123, 128, 202, 206, 213, 228, 285, 350, 362, 375, 400, 480, 487, 530, 565, 568, 574, 595
+# 30 cards.
+
+
+# extras_20 <- filter(zz, grepl("(ASR)", name))
+# extras_20
+
+extras_20 <- filter(zz, grepl("(Altuve|Torres|Ozuna|Acuna|Freeman|Bieber|Bauer|Judge|Stanton|Tatis|Arenado|Rendon|Turner|Seager|Bichette|Guerrero|Torii|Prior|Rollins|Braun|Fielder|Sheets|ASR|Sabathia|Tulow|Giambi|Damon|Zito|Ankiel|Tejada|Matsuzaka|Hart|Weeks|Gwynn|Kerry|Nomar|Kent|Adrian Gonzalez|Howard|Berkman|Hanley Ramirez|Sizemore|Morneau|Willis|Sexson|Hardy)", name))
+extras_20
+
+# need to get rid of 7 of these:
+bind_rows(select(z4, name, year, number), 
+          select(extras_20, name, year, number)) %>%
+  arrange(as.integer(number)) %>%
+  filter(number %in% c(120, 214, 636, 638, 11, 239, 575) == FALSE) %>%
+  pull(number) %>%
+  unique() %>%
+  paste(collapse = ", ")
+
+# 2020: 1, 7, 14, 16, 49, 50, 140, 192, 200, 224, 230, 250, 304, 316, 324, 345, 347, 350, 367, 455, 491, 497, 500, 547, 549, 550, 571, 602, 617, 620
+# 30 cards.
+
+
+
+
+filter(my_cards, own == 0, year == 1981) %>%
+  select(name:remaining_price, type) %>%
+  arrange(as.integer(number))
+
+
+
+
+
 
 
 

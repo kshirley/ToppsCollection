@@ -222,6 +222,8 @@ library(tidyr)
 library(stringr)
 library(googlesheets4)
 library(ggplot2)
+lu <- function(x) length(unique(x))
+su <- function(x) sort(unique(x))
 
 # read in the data:
 data <- fread("data/card_prices_clean_through_2021-01-04.csv", data.table = FALSE)
@@ -287,10 +289,21 @@ dev.off()
 
 
 
+# look for a few cards:
+filter(data, year == 1963, number == 390) %>%
+  arrange(condition)
 
+filter(data, year == 1963, number == 169) %>%
+  arrange(condition)
 
+filter(data, year == 1963, number == 200) %>%
+  arrange(condition)
 
+filter(data, year == 1963, number == 252) %>%
+  arrange(condition)
 
+filter(data, year == 1963, number == 275) %>%
+  arrange(condition)
 
 
 

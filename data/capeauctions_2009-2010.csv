@@ -1,0 +1,24 @@
+name,year,number,price,own,type,ebay
+Frank Thomas,2009,24,0.65,0,first_ballot,1
+Ken Griffey Jr,2009,30,0.87,0,first_ballot,1
+Justin Verlander,2009,85,0.5,0,first_ballot,1
+Roy Halladay,2009,155,0.63,0,first_ballot,1
+Randy Johnson,2009,185,0.68,0,first_ballot,1
+Max Scherzer,2009,224,0.5,0,first_ballot,1
+Greg Maddux,2009,287,0.64,0,first_ballot,1
+Ichiro Suzuki,2009,300,0.89,0,first_ballot,1
+Miguel Cabrera,2009,320,1,0,first_ballot,1
+Albert Pujols,2010,100,1.5,0,first_ballot,1
+Ichiro Suzuki,2010,125,1.35,0,first_ballot,1
+Max Scherzer,2010,215,0.35,0,first_ballot,1
+David Ortiz,2010,369,0.3,0,first_ballot,1
+Mariano Rivera,2010,404,0.3,0,first_ballot,1
+Derek Jeter,2010,549,2.5,0,first_ballot,1
+Miguel Cabrera,2010,623,1,0,first_ballot,1
+Chipper Jones,2010,652,0.35,0,first_ballot,1
+Vladimir Guerrero,2009,130,0.5,0,bbwaa,1
+David Wright,2009,100,1,0,vet_or_other,1
+Manny Ramirez,2009,260,0.6,0,vet_or_other,1
+Gary Sheffield,2009,515,0.5,0,vet_or_other,1
+Manny Ramirez,2010,55,0.3,0,vet_or_other,1
+Robinson Cano,2010,370,1,0,vet_or_other,1

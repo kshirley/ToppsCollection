@@ -1,0 +1,10 @@
+name,year,number,price,own,type,ebay
+Mike Trout,2020,1,1.25,0,first_ballot,1
+Ichiro Suzuki,2020,192,4.75,0,first_ballot,1
+Justin Verlander,2020,345,0.99,0,first_ballot,1
+Albert Pujols,2020,497,1.36,0,first_ballot,1
+Cody Bellinger,2020,50,0.25,0,vet_or_other,1
+Christian Yelich,2020,200,0.99,0,vet_or_other,1
+Juan Soto,2020,224,0.99,0,vet_or_other,1
+Bryce Harper,2020,250,0.99,0,vet_or_other,1
+Kris Bryant,2020,455,0.99,0,vet_or_other,1

@@ -150,23 +150,34 @@ make_page(cards2)
 make_page(cards3)
 # scp ~/public_git/ToppsCollection/index.html kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards_part3
 
+# code from tidyverse API
+# 4/1AY0e-g6u8ZS1Vxj-KDTTNkD4qVr9GJ9MPcWijbxreGZ48_PVOQqumDY8JA8
+
+
+
 
 
 
 
 
 ### a few more command line things:
+
+# sync the images from my local machine to the server:
 # rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images
 
-
-
+# from server to local:
 # rsync -avzn kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images ~/public_git/ToppsCollection/images/
 
-
+# copy a bunch of images from one directory to another:
 # cp -a /home/kes/public/kennyshirley.com/public_html/bball_cards/images/. /home/kes/public/kennyshirley.com/public_html/bball_cards_part2/images/
   
+# move the David Wright 2016 images to the right folder
+# cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/front/115847-8312726Fr.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/front/115847-8312726Fr.jpg
+# cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/back/115847-8312726Bk.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/back/115847-8312726Bk.jpg
+
+
+
 # cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/front/291-107387RepFr.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/front/291-107387RepFr.jpg
-# cp /home/kes/public/kennyshirley.com/public_html/bball_cards/images/back/291-12Bk.jpg /home/kes/public/kennyshirley.com/public_html/bball_cards_part3/images/back/291-12Bk.jpg
 
 
 # python -m http.server 8000

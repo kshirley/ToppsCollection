@@ -1,0 +1,12 @@
+name,year,number,price,own,type,ebay
+Miguel Cabrera,2008,10,1.47,0,first_ballot,1
+Ichiro Suzuki,2008,320,1.28,0,first_ballot,1
+David Ortiz,2009,50,0.4,0,first_ballot,1
+Mariano Rivera,2009,60,1,0,first_ballot,1
+Derek Jeter,2009,353,1.5,0,first_ballot,1
+John Smoltz,2009,355,1,0,first_ballot,1
+Chipper Jones,2009,475,1,0,first_ballot,1
+Clayton Kershaw,2009,575,1.25,0,first_ballot,1
+Roger Clemens,2008,105,0.85,0,vet_or_other,1
+Alex Rodriguez,2009,1,0.95,0,vet_or_other,1
+Joey Votto,2009,390,1,0,vet_or_other,1
