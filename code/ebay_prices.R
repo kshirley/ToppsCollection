@@ -10,6 +10,8 @@ library(tidyr)
 library(stringr)
 library(googlesheets4)
 library(httr)
+library(RSelenium)
+library(V8)
 
 # get the list of cards that I want to price:
 google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
@@ -24,7 +26,7 @@ cards3 <- as.data.frame(cards3)
 cards <- bind_rows(cards1, cards2, cards3)
 
 # Now get just the pre-1988 cards:
-df <- filter(cards, year <= 1987) %>% select(name:own) %>%
+df <- filter(cards, year <= 1975) %>% select(name:own) %>%
   replace_na(list(own = 0))
 
 # look at the last name:
@@ -38,11 +40,28 @@ df <- df %>%
 
 
 # set the user agent:
-a <- "Mozilla/5.0 (iPad; U; CPU OS 3_2_1 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Mobile/7B405"
+
+# a <- "Mozilla/5.0 (iPad; U; CPU OS 3_2_1 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Mobile/7B405"
+# a <- "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36"
+a <- "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.72 Safari/537.36"
+
 httr::set_config(user_agent(a))
 
 ### First try, just wrap the call in a tryCatch and see how many I get:
 tmp <- vector("list", nrow(df))
+
+# rD <- rsDriver(browser=c("firefox"))
+# driver <- rD[["client"]]
+# 
+# # navigate to an URL
+# driver$navigate("http://books.toscrape.com/")
+# 
+# #close the driver
+# driver$close()
+# 
+# #close the server
+# rD[["server"]]$stop()
+
 for (i in 1:nrow(df)) {
   print(i)
   print(paste("  ", df$year[i], df$last_name[i]))
@@ -53,8 +72,55 @@ for (i in 1:nrow(df)) {
                 "+", 
                 tolower(df$last_name[i]), 
                 "&_in_kw=4&_ex_kw=&_sacat=0&LH_Sold=1&_udlo=&_udhi=&_samilow=&_samihi=&_sadis=15&_stpos=07079&_sargn=-1%26saslc%3D1&_salic=1&_fss=1&_fsradio=%26LH_SpecificSeller%3D1&_saslop=1&_sasl=gregmorriscards&_sop=13&_dmd=1&_ipg=200&LH_Complete=1&_fosrp=1")
-
+  
   try(tmp[[i]] <- read_html(x = url(url)))
+  # tmp[[i]] <- read_html(x = url) %>% 
+  #   html_nodes("script") %>% 
+  #   html_text()
+  
+  Sys.sleep(1)
+}
+
+  
+  # tmp[[i]] <- driver$navigate(url)
+  
+
+  # start the server and browser(you can use other browsers here)
+  # rD <- rsDriver(browser=c("firefox"))
+  rD <- rsDriver(browser=c("chrome"))
+  rD <- rsDriver(port=4444L, browser='chrome', chromever='90.0.4430.24')
+  
+  driver$open()
+  driver <- rD[["client"]]
+  
+  # navigate to an URL
+  driver$navigate(url)
+  driver$navigate("https://www.google.com")
+  
+  #close the driver
+  driver$close()
+  
+  #close the server
+  rD[["server"]]$stop()
+  
+  
+  # rD = rsDriver(port = 4444L, browser="chrome", chromever="90.0.4430.24") 
+  # #specify chrome version
+  # remDr = rD[['client']]
+  # remDr$navigate(url) #this will open a chrome window
+  # src = remDr$getPageSource()[[1]] #select everything for now
+  
+  # try(tmp[[i]] <- read_html(x = url(url)))
+  x <- html_session(url = url)
+  tmp[[i]] <- x$html
+  
+  tmp[[i]] %>%
+    html_nodes(".vip") %>%
+    # html_nodes("a") %>%
+    html_text()
+  
+  
+  print(length(tmp[[i]]))
 }
 
 
@@ -102,17 +168,19 @@ sum(sapply(tmp, length) == 2)  # 1303
 ### Now loop through the downloaded pages and extract info about the cards:
 
 results <- vector("list", nrow(df))
-for (i in 1:nrow(df)) {
+# for (i in 1:nrow(df)) {
+for (i in 1:30) {
   print(i)
   p <- tmp[[i]]
   
   # get item title:
   title <- p %>%
     html_nodes(".vip") %>%
+    # html_nodes("a") %>%
     html_text()
   
   print(paste("  ", length(title)))
-  
+
   # get price
   price <- p %>%
     html_nodes(".bidsold") %>%
@@ -134,7 +202,7 @@ for (i in 1:nrow(df)) {
   date <- gsub("\r", "", date, fixed = TRUE)
   date <- gsub("\t", "", date, fixed = TRUE)
   date <- as.Date(date, format = "%b-%d %H:%M")
-  date <- date - 365  # correct for every date being 2021 by accident.
+  # date <- date - 365  # correct for every date being 2021 by accident.
   
   # get it in a data frame:
   results[[i]] <- data.frame(title, date, bids, price)
@@ -144,18 +212,22 @@ for (i in 1:nrow(df)) {
 out <- bind_rows(results)
 
 # fix the year for the past few days:
-sel <- out$date < as.Date("2020-01-05")
-out$date[sel] <- out$date[sel] + 366
+# sel <- out$date < as.Date("2020-01-05")
+# out$date[sel] <- out$date[sel] + 366
+
+# plot frequency by date:
+out %>%
+  ggplot(aes(x = date)) + 
+  geom_bar(stat = "count")
+
+fwrite(out, file = "data/card_prices_pulled_2021-04-13.csv")
+
 
 # get rid of old stuff that overlaps the previous data pull:
 out_old <- fread("data/card_prices.csv", data.table = FALSE)
 out_all <- bind_rows(out_old, out)
 out_all <- unique(out_all)
 
-# plot frequency by date:
-out_all %>%
-  ggplot(aes(x = date)) + 
-  geom_bar(stat = "count")
 
 fwrite(out, file = "data/card_prices_through_2021-01-04.csv")
 fwrite(df, file = "data/card_price_list.csv")
@@ -177,6 +249,11 @@ library(googlesheets4)
 # read in the data:
 data <- fread("data/card_prices_through_2021-01-04.csv", data.table = FALSE)
 data$year <- as.integer(substr(data$title, 1, 4))
+
+data2 <- fread("data/card_prices_pulled_2021-04-13.csv", data.table = FALSE)
+data2$date <- data2$date + 365 # fix small bug when downloading 2021-04-13
+data2$year <- as.integer(substr(data2$title, 1, 4))
+data <- bind_rows(data, data2)
 
 # get the card number:
 data$title <- gsub("wrinkle0", "wrinkle)", data$title, fixed = TRUE)
@@ -204,7 +281,8 @@ data <- mutate(data, condition = condition)
 # Put it together:
 data <- select(data, name, year, number, condition, date, bids, price)
 
-fwrite(data, file = "data/card_prices_clean_through_2021-01-04.csv")
+# fwrite(data, file = "data/card_prices_clean_through_2021-01-04.csv")
+fwrite(data, file = "data/card_prices_clean_through_2021-04-13.csv")
 
 
 
@@ -226,7 +304,7 @@ lu <- function(x) length(unique(x))
 su <- function(x) sort(unique(x))
 
 # read in the data:
-data <- fread("data/card_prices_clean_through_2021-01-04.csv", data.table = FALSE)
+data <- fread("data/card_prices_clean_through_2021-04-13.csv", data.table = FALSE)
 
 # read in the metadata:
 df <- fread("data/card_price_list.csv", data.table = FALSE)
@@ -286,7 +364,8 @@ dev.off()
 
 
 
-
+filter(data, name == "Ernie Banks") %>% 
+  arrange(year, desc(price))
 
 
 # look for a few cards:

@@ -1568,7 +1568,8 @@ my_cards <- bind_rows(cards1, cards2, cards3)
 my_cards <- replace_na(my_cards, list(own = 0))
 my_cards$type <- type
 
-
+# Just for display purposes get rid of the URLs:
+my_cards <- select(my_cards, -url, -front_url, -back_url)
 
 
 # list from 'stlbrowns'
@@ -1631,6 +1632,531 @@ z
 
 # stlbrowns has tons of years, and every card, basically.
 # just have to pay a bit more for them...
+
+
+
+### now let's try stlbrowns for the 2012-2019 listing:
+url <- "https://www.ebay.com/itm/2012-2013-2014-2015-2016-2017-2018-2019-TOPPS-LOT-COMPLETE-YOUR-SET-20-PICKS/193936193904"
+years <- 2012:2019
+n_years <- length(years)
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("strong") %>%
+  html_text()
+
+# manually check to see which elements are lists of card numbers:
+indices <- list(5:8, 10:11, 14:15, 17, 19, 21:22, 24:26, 28)
+
+
+# # measure number of space-separated words on this page:
+# n <- sapply(strsplit(tmp, split = "[[:space:]]+"), length)
+
+# it's elements 4-7 for 2003 topps
+tmp <- gsub(x = tmp, pattern = "&nbsp;", replacement = " ")
+
+numbers <- vector("list", n_years)
+for (i in 1:n_years) {
+  nl <- gsub(x = tmp[indices[[i]]], pattern = " picks", replacement = "")
+  nl <- strsplit(nl, split = "[[:space:]]+")
+
+  x <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 1)) %>%
+    unlist() %>%
+    as.numeric() %>%
+    as.data.frame() %>%
+    rename(number = ".")
+  
+  picks <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 2)) %>%
+    unlist() %>%
+    gsub(pattern = "\\)", replacement = "")
+  
+  x$picks <- as.integer(picks)
+
+  # fill in 2 picks for 312 and 334:
+  x$picks[x$number %in% c(312, 334)] <- 2
+  
+  offer <- filter(x, !is.na(number)) %>%
+    replace_na(list(picks = 1)) %>%
+    mutate(ebay = 1, 
+           year = years[i])
+  
+  numbers[[i]] <- offer
+}
+
+
+offer <- bind_rows(numbers)
+
+
+z <- my_cards %>%
+  filter(own == 0, year %in% years) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+
+z %>% 
+  group_by(type) %>% 
+  summarize(n = n(), 
+            n_avail = sum(ebay), 
+            price = sum(price), 
+            picks = sum(picks, na.rm = TRUE)) %>% 
+  mutate(cost = picks * 0.18) 
+
+
+z %>% 
+  mutate(cost = picks * 0.18) %>% 
+  arrange(desc(cost))
+
+z %>% 
+  select(name, year, number, picks) %>% 
+  arrange(year, number)
+
+z %>% 
+  arrange(year, number) %>% 
+  group_by(year) %>% 
+  summarize(paste(number, name, picks, collapse = ", ")) %>% 
+  as.data.frame()
+
+  
+
+2.75 + 0.18 * (415 - 20)
+# 73.85
+
+
+
+filter(my_cards, year == 1999) %>% 
+  select(name:remaining_price, type) %>% 
+  filter(own == 0, as.integer(number) <= 242) %>% 
+  arrange(type, as.integer(number))
+
+
+
+### Now price the 1998-1999 offering from stlbrowns:
+filter(my_cards, year == 1999) %>% 
+  arrange(as.integer(number)) %>% 
+  select(name:remaining_price, type) %>% 
+  filter(own == 0)
+
+
+url <- "https://www.ebay.com/itm/1998-1999-TOPPS-LOT-COMPLETE-YOUR-SET-INSERTS-20-PICKS/203285978651"
+years <- 1998:1999
+n_years <- length(years)
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("strong") %>%
+  html_text()
+
+# manually check to see which elements are lists of card numbers:
+indices <- list(9:14, 27)
+
+# # measure number of space-separated words on this page:
+# n <- sapply(strsplit(tmp, split = "[[:space:]]+"), length)
+
+# it's elements 4-7 for 2003 topps
+tmp <- gsub(x = tmp, pattern = "&nbsp;", replacement = " ")
+
+numbers <- vector("list", n_years)
+for (i in 1:n_years) {
+  nl <- gsub(x = tmp[indices[[i]]], pattern = " picks", replacement = "")
+  nl <- strsplit(nl, split = "[[:space:]]+")
+  
+  x <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 1)) %>%
+    unlist() %>%
+    as.numeric() %>%
+    as.data.frame() %>%
+    rename(number = ".")
+  
+  picks <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 2)) %>%
+    unlist() %>%
+    gsub(pattern = "\\)", replacement = "")
+  
+  x$picks <- as.integer(picks)
+  
+  offer <- filter(x, !is.na(number)) %>%
+    replace_na(list(picks = 1)) %>%
+    mutate(ebay = 1, 
+           year = years[i])
+  
+  numbers[[i]] <- offer
+}
+
+
+offer <- bind_rows(numbers)
+
+
+z <- my_cards %>%
+  filter(own == 0, year %in% years) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0))
+
+z %>% 
+  group_by(type) %>% 
+  summarize(n = n(), 
+            n_avail = sum(ebay), 
+            price = sum(price), 
+            picks = sum(picks, na.rm = TRUE)) %>% 
+  mutate(cost = picks * 0.18) 
+
+
+z %>% 
+  mutate(cost = picks * 0.18) %>% 
+  arrange(desc(cost))
+
+z %>% 
+  select(name, year, number, picks) %>% 
+  arrange(year, number)
+
+z %>% 
+  arrange(year, number) %>% 
+  group_by(year) %>% 
+  summarize(paste(number, name, picks, collapse = ", ")) %>% 
+  as.data.frame()
+
+
+2.50 + 0.18 * (sum(z$picks) - 20)
+# 34.00 to finish 98 and 99 (38 cards)
+
+
+filter(z, year == 1998 | (year == 1999 & number > 240)) %>% 
+  summarize(sum(picks))
+# 115 picks for non series 1 for 1999
+2.50 + 0.18 * 95
+# 19.60 to finish 1998 and series 2 1999
+# then pay $60 to finish 1999 series 1
+
+# I bought the 1999 series 1 box, will open it, and then buy necessary rest for about $20.
+
+# does he have 94, 95, 96, 97?
+
+
+
+
+# try 2000:2001 stlbrowns:
+url <- "https://www.ebay.com/itm/2000-2001-TOPPS-LOT-INSERTS-GOLD-COMPLETE-YOUR-SET-20-PICKS/193852136896"
+years <- 2000:2001
+n_years <- length(years)
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("p") %>%
+  html_text()
+
+# manually check to see which elements are lists of card numbers:
+indices <- list(4, 18)
+
+# # measure number of space-separated words on this page:
+# n <- sapply(strsplit(tmp, split = "[[:space:]]+"), length)
+
+# it's elements 4-7 for 2003 topps
+tmp <- gsub(x = tmp, pattern = "&nbsp;", replacement = " ")
+
+numbers <- vector("list", n_years)
+for (i in 1:n_years) {
+  nl <- gsub(x = tmp[indices[[i]]], pattern = " picks", replacement = "")
+  nl <- strsplit(nl, split = "[[:space:]]+")
+  
+  x <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 1)) %>%
+    unlist() %>%
+    as.numeric() %>%
+    as.data.frame() %>%
+    rename(number = ".")
+  
+  picks <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 2)) %>%
+    unlist() %>%
+    gsub(pattern = "\\)", replacement = "")
+  
+  x$picks <- as.integer(picks)
+  
+  offer <- filter(x, !is.na(number)) %>%
+    replace_na(list(picks = 1)) %>%
+    mutate(ebay = 1, 
+           year = years[i])
+  
+  numbers[[i]] <- offer
+}
+
+
+offer <- bind_rows(numbers)
+
+
+z <- my_cards %>%
+  filter(own == 0, year %in% years) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>% 
+  arrange(year, number, desc(picks)) %>% 
+  filter(!duplicated(paste(year, number, sep = "-")))
+
+z %>% 
+  group_by(type) %>% 
+  summarize(n = n(), 
+            n_avail = sum(ebay), 
+            price = sum(price), 
+            picks = sum(picks, na.rm = TRUE)) %>% 
+  mutate(cost = picks * 0.18) 
+
+
+z %>% 
+  mutate(cost = picks * 0.18) %>% 
+  arrange(desc(cost))
+
+z %>% 
+  select(name, year, number, picks) %>% 
+  arrange(year, number)
+
+z %>% 
+  arrange(year, number) %>% 
+  group_by(year) %>% 
+  summarize(paste(number, name, picks, collapse = ", ")) %>% 
+  as.data.frame()
+
+
+# great deal here...
+2.75 + 0.18 * (sum(z$picks) - 20)
+# 11.21 to finish 2000 and 2001 (31 cards)
+# Wow, super cheap. Definitely do this one.
+
+
+
+
+
+
+### Now price 2008-2009:
+url <- "https://www.ebay.com/itm/2008-2009-TOPPS-LOT-COMPLETE-YOUR-SET-INSERTS-GOLD-20-PICKS/203123371588?hash=item2f4b18ae44:g:mqgAAOxyM89SdcZf"
+years <- 2008:2009
+
+url <- "https://www.ebay.com/itm/2004-2005-TOPPS-LOT-COMPLETE-YOUR-SET-GOLD-INSERTS-20-PICKS/203329161023?hash=item2f575cc73f:g:xz4AAOSw9NxTvzOE"
+years <- 2004:2005
+
+url <- "https://www.ebay.com/itm/2010-TOPPS-SERIES-1-2-LOT-COMPLETE-YOUR-SET-INSERTS-20-PICKS/203245479697?hash=item2f525fe711:g:fLMAAMXQQJBQ7M4C"
+years <- 2010
+
+url <- "https://www.ebay.com/itm/2002-TOPPS-INSERTS-GOLD-LOT-TEAM-LOGO-STICKERS-COMPLETE-YOUR-SET-20-PICKS/193909114228?hash=item2d25e24574:g:O1UAAMXQTT9R0Ln1"
+years <- 2002
+
+url <- "https://www.ebay.com/itm/1996-1997-TOPPS-LOT-COMPLETE-YOUR-SET-INSERTS-20-PICKS/203176943836?hash=item2f4e4a20dc:g:~3AAAOxyHt9R0LGd"
+years <- 1996:1997
+
+
+n_years <- length(years)
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("p") %>%
+  html_text()
+
+substr(tmp, 1, 100)
+
+# manually check to see which elements are lists of card numbers:
+# indices <- list(4, 19) # for 2008-2009
+# indices <- list(4, 15) # for 2004-2005
+# indices <- list(4) # for 2010
+# indices <- list(4) # for 2002
+indices <- list(4, 10) # for 1996-97
+
+# # measure number of space-separated words on this page:
+# n <- sapply(strsplit(tmp, split = "[[:space:]]+"), length)
+
+# it's elements 4-7 for 2003 topps
+tmp <- gsub(x = tmp, pattern = "&nbsp;", replacement = " ")
+
+numbers <- vector("list", n_years)
+for (i in 1:n_years) {
+  nl <- gsub(x = tmp[indices[[i]]], pattern = " picks", replacement = "")
+  nl <- strsplit(nl, split = "[[:space:]]+")
+  
+  x <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 1)) %>%
+    unlist() %>%
+    as.numeric() %>%
+    as.data.frame() %>%
+    rename(number = ".")
+  
+  picks <- lapply(nl, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 2)) %>%
+    unlist() %>%
+    gsub(pattern = "\\)", replacement = "")
+  
+  x$picks <- as.integer(picks)
+  
+  offer <- filter(x, !is.na(number)) %>%
+    replace_na(list(picks = 1)) %>%
+    mutate(ebay = 1, 
+           year = years[i])
+  
+  numbers[[i]] <- offer
+}
+
+
+offer <- bind_rows(numbers)
+
+
+z <- my_cards %>%
+  filter(own == 0, year %in% years) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>% 
+  arrange(year, number, desc(picks)) %>% 
+  filter(!duplicated(paste(year, number, sep = "-")))
+
+z %>% 
+  group_by(type) %>% 
+  summarize(n = n(), 
+            n_avail = sum(ebay), 
+            price = sum(price), 
+            picks = sum(picks, na.rm = TRUE)) %>% 
+  mutate(cost = picks * 0.18) 
+
+
+z %>% 
+  mutate(cost = picks * 0.18) %>% 
+  arrange(desc(cost))
+
+z %>% 
+  select(name, year, number, picks) %>% 
+  arrange(year, number)
+
+z %>% 
+  arrange(year, number) %>% 
+  group_by(year) %>% 
+  summarize(paste(number, name, picks, collapse = ", ")) %>% 
+  as.data.frame()
+
+
+# great deal here...
+2.75 + 0.18 * (sum(z$picks) - 20)
+# 16.07 to finish 2008 and 2009 (28 cards)
+# Wow, super cheap. Definitely do this one.
+
+2.75 + 0.18 * (sum(z$picks, na.rm = TRUE) - 20)
+# 21.11 to finish 2004-2005 (34 cards, no verlander or molina)
+
+2.75 + 0.18 * (sum(z$picks, na.rm = TRUE) - 20)
+# 15.35 to finish 2010 (including posey and strasburg)
+
+2.75 + 0.18 * (sum(z$picks, na.rm = TRUE) - 20)
+# 18.05 to finish 2002 (including pujols cup and mauer rookie)
+
+2.75 + 0.18 * (sum(z$picks, na.rm = TRUE) - 20)
+# 4.73 to finish 1996-97
+
+
+
+
+# filter(my_cards, year %in% 1969:1970, own == 0) %>% 
+#   arrange(year, as.integer(number)) %>% 
+#   select(name:remaining_price, type) %>% 
+#   arrange(desc(price))
+
+filter(my_cards, year == 2003, own == 0) %>% 
+  arrange(as.integer(number)) %>% 
+  select(name:remaining_price, type)
+
+filter(my_cards, year == 2009, own == 0) %>% 
+  arrange(as.integer(number)) %>% 
+  select(name:remaining_price, type)
+
+filter(my_cards, year == 2004, own == 0) %>% 
+  arrange(as.integer(number)) %>% 
+  select(name:remaining_price, type)
+
+
+filter(my_cards, year == 2006, own == 0) %>% 
+  arrange(as.integer(number)) %>% 
+  select(name:remaining_price, type)
+
+
+filter(my_cards, year %in% c(2008, 2009, 2011), own == 0) %>% 
+  arrange(year, as.integer(number)) %>% 
+  select(name:remaining_price, type)
+
+
+
+filter(my_cards, year > 2000, own == 0) %>% 
+  arrange(year, as.integer(number)) %>% 
+  select(name:remaining_price, type)
+
+
+
+
+# make a list for 1996 topps stars
+# only have 4 left to buy from my list: jeter, piazza, mattingly, bonds
+filter(my_cards, year == 1996, own == 0)
+
+# read in the checklist:
+cl <- fread("data/checklists_1952_2020.csv", data.table = FALSE)
+
+filter(cl, year == 1996, grepl("ASR", name))
+
+
+
+
+
+#############################################
+
+# quick spot-check for 2008 topps from 'stsi'
+my_cards %>%
+  filter(own == 0, year == 2008) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>% 
+  arrange(number) %>% 
+  filter(number %in% c(1, 7, 96, 105, 127, 234, 256, 319, 320) == FALSE, 
+         number <= 330)
+  
+cl <- fread("data/checklists_1952_2020.csv", data.table = FALSE)
+
+filter(cl, year == 2008, grepl("ASR", name))
+
+filter(cl, year == 2008, number %in% c(1, 7, 96, 105, 127, 234, 256, 319, 320))
+
+
+my_cards %>%
+  filter(own == 0, year == 1998) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>% 
+  arrange(number)
+  
+  
+
+
+
+
 
 
 
@@ -1900,6 +2426,253 @@ filter(my_cards, own == 0, year == 1981) %>%
   arrange(as.integer(number))
 
 
+my_cards %>% 
+  filter(year == 1995) %>% 
+  filter(own == 0) %>% 
+  arrange(as.numeric(number)) %>% 
+  select(name:remaining_price, type) %>% 
+  as.data.frame()
+
+
+# waxpaxmax66:
+url <- "https://www.ebay.com/itm/1995-1996-1997-1998-Topps-Baseball-complete-finish-your-set-you-pick-20/114576184208?hash=item1aad45d390:g:iIQAAOSwxGpe1GfI"
+years <- 1995:1998
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("b") %>%
+  html_text()
+
+ind <- c(3, 8, 10, 12)
+offer <- vector("list", 4)
+for (i in 1:4) {
+  x1 <- gsub(x = tmp[ind[i]], pattern = "&nbsp;", replacement = " ")
+  x2 <- gsub(x = x1, pattern = " [Pp]icks", replacement = "")
+  x3 <- strsplit(x2, split = "[[:space:]]+")
+  
+  x <- lapply(x3, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 1)) %>%
+    unlist() %>%
+    as.numeric() %>%
+    as.data.frame() %>%
+    rename(number = ".")
+  
+  picks <- lapply(x3, strsplit, split = "\\(") %>%
+    lapply(function(x) sapply(x, "[", 2)) %>%
+    unlist() %>%
+    gsub(pattern = "\\)", replacement = "")
+  
+  x$picks <- as.integer(picks)
+  
+  # fill in 2 picks for 312 and 334:
+  x$picks[x$number %in% c(312)] <- 20
+  
+  # get rid of NA numbers and replace NA picks with 1:
+  offer[[i]] <- filter(x, !is.na(number)) %>%
+    replace_na(list(picks = 1)) %>%
+    mutate(ebay = 1, 
+           year = years[i])
+}
+
+offer <- bind_rows(offer)
+
+z <- my_cards %>%
+  filter(own == 0, year %in% years) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+
+arrange(z, year)
+
+# 51 cards here from 95-98.
+# total cost about $20.
+
+# create list for ebay message:
+z %>% 
+  arrange(year, number) %>% 
+  group_by(year) %>% 
+  summarize(paste(number, collapse = ", "))
+
+# 1  1995 77, 190, 422, 438, 440, 469, 474, 502, 503, 558, 577, 592                                
+# 2  1996 247                                                                                      
+# 3  1997 46, 70, 95, 124, 140, 167, 218, 244, 282, 295, 305, 318, 352, 375, 387, 388, 455, 461    
+# 4  1998 1, 2, 3, 33, 35, 57, 100, 110, 145, 160, 165, 166, 175, 254, 285, 307, 317, 319, 323, 338
+
+
+
+my_cards %>% 
+  filter(year == 2000) %>% 
+  filter(own == 0) %>% 
+  arrange(as.numeric(number)) %>% 
+  select(name:remaining_price, type) %>% 
+  as.data.frame()
+
+my_cards %>% 
+  filter(year == 2008) %>% 
+  filter(own == 0) %>% 
+  arrange(as.numeric(number)) %>% 
+  select(name:remaining_price, type) %>% 
+  as.data.frame()
+
+
+
+
+
+
+### Let's try hawkescards:
+
+url <- "https://www.ebay.com/itm/2000-2019-Topps-Baseball-Cards-Parallels-Inserts-Complete-Your-Set-U-Pick-20/203262608967?hash=item2f53654647:g:mocAAOSwTQxgE23N"
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("span") %>%
+  html_text()
+
+
+years <- c(2012:2016, 2018, 2019)
+n_yrs <- length(years)
+
+anch <- numeric(n_yrs)
+for (i in 1:n_yrs) {
+  anch[i] <- grep(paste0(years[i], " Topps"), tmp)
+}
+
+indices <- vector("list", 7)
+
+print(tmp[anch[1] + 0:10])
+indices[[1]] <- c(2, 4:6) + anch[1] - 1
+
+print(tmp[anch[2] + 0:10])
+indices[[2]] <- c(5, 7:9) + anch[2] - 1
+  
+print(tmp[anch[3] + 0:10])
+indices[[3]] <- c(3, 5, 7:9) + anch[3] - 1
+
+print(tmp[anch[4] + 0:10])
+indices[[4]] <- c(3, 5:7) + anch[4] - 1
+
+print(tmp[anch[5] + 0:10])
+indices[[5]] <- c(3, 5:7) + anch[5] - 1
+
+print(tmp[anch[6] + 0:10])
+indices[[6]] <- c(3, 5:7) + anch[6] - 1
+
+indices[[7]] <- c(200:203, 208:211)
+
+
+offer <- vector("list", 7)
+for (i in 1:7) {
+
+  nl <- paste(tmp[indices[[i]]], collapse = ", ") %>% 
+    gsub(pattern = "\n", replacement = " ") %>%
+    gsub(pattern = "(Series 2|Series 1|Base)", replacement = "") %>% 
+    gsub(pattern = "[[:punct:]]", replacement = "") %>%
+    strsplit(split = "[[:space:]]+") %>% 
+    unlist() %>% 
+    as.integer()
+  nl <- nl[!is.na(nl)]
+  offer[[i]] <- data.frame(year = years[i], 
+                           number = nl, 
+                           ebay = 1)
+}  
+
+offer <- bind_rows(offer) %>% 
+  bind_rows(data.frame(year = 2006, number = 1, ebay = 1))
+
+z <- my_cards %>%
+  filter(own == 0, year > 2005) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+
+arrange(z, year)
+
+# 16 cards
+
+arrange(z, year) %>% 
+  select(year, number, name)
+
+
+
+
+
+### Try Rynoria for 1982 Topps:
+
+url <- "https://www.ebay.com/itm/1982-TOPPS-Baseball-Cards-Stars-Commons-Up-to-15-cards-to-Complete-Your-Set/302923402254?_trkparms=aid%3D1110012%26algo%3DSPLICE.SOIPOST%26ao%3D1%26asc%3D20201210111451%26meid%3D746f3998431845dbb5ecb0ada676c7b8%26pid%3D101196%26rk%3D2%26rkt%3D12%26mehot%3Dpf%26sd%3D303455937678%26itm%3D302923402254%26pmt%3D1%26noa%3D0%26pg%3D2047675%26algv%3DPromotedSellersOtherItemsV2WithMLRv3&_trksid=p2047675.c101196.m2219"
+year <- 1982
+
+url <- "https://www.ebay.com/itm/1981-TOPPS-Baseball-Cards-Stars-Commons-Up-to-15-cards-to-Complete-Your-Set/303520799864?_trkparms=aid%3D1110012%26algo%3DSPLICE.SOIPOST%26ao%3D1%26asc%3D20201210111451%26meid%3D68564ddb64cb4080bbb9fe5dc93c0850%26pid%3D101196%26rk%3D1%26rkt%3D12%26mehot%3Dpf%26sd%3D302923402254%26itm%3D303520799864%26pmt%3D1%26noa%3D0%26pg%3D2047675%26algv%3DPromotedSellersOtherItemsV2WithMLRv3&_trksid=p2047675.c101196.m2219"
+year <- 1981
+
+url <- "https://www.ebay.com/itm/2010-TOPPS-Baseball-Cards-Stars-Commons-Up-to-15-cards-to-Complete-Your-Set/303455937678?_trkparms=aid%3D1110006%26algo%3DHOMESPLICE.SIM%26ao%3D1%26asc%3D20201210111314%26meid%3D49fa948416dd422db2636e81eb9a32ca%26pid%3D101195%26rk%3D7%26rkt%3D12%26mehot%3Dpf%26sd%3D303520799864%26itm%3D303455937678%26pmt%3D1%26noa%3D0%26pg%3D2047675%26algv%3DSimplAMLv9PairwiseUnbiasedWeb&_trksid=p2047675.c101195.m1851"
+year <- 2010
+
+# read the URL:
+page <- read_html(url)
+
+desc_link <- page %>%
+  html_nodes("iframe") %>%
+  html_attr("src")
+
+tmp <- read_html(desc_link) %>%
+  html_nodes("p") %>%
+  html_text()
+
+tmp <- tmp[tmp != ""]
+tmp <- tmp[-c(1:7, 50:55)]
+tmp <- str_split(tmp, "\n") %>% unlist()
+tmp <- tmp[tmp != ""]
+
+
+number <- strsplit(tmp, " ") %>% sapply("[", 1) %>% str_trim() %>% as.integer()
+
+offer <- data.frame(year = year, number = number, ebay = 1, desc = tmp)
+
+z <- my_cards %>%
+  filter(own == 0, year == 2010) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1)
+
+arrange(z, number)
+
+arrange(z, number) %>% 
+  select(number, desc)
+
+#    number                                            desc
+# 1     115                               115 Gaylord Perry
+# 2     185                                 185 Phil Niekro
+# 3     255           255 Tony Perez  (counts as 2 commons)
+# 4     305           305 Don Sutton  (counts as 2 commons)
+# 5     624        624 Fergie Jenkins (counts as 2 commons)
+# 6     685                               685 Bert Blyleven
+# 7     715       715 Willie Stargell (counts as 3 commons)
+# 8     754            754 Joe Morgan (counts as 3 commons)
+
+# 1981 only had 2 cards (fisk and parker)
+
+
+
+filter(my_cards, year >= 2012, own == 0) %>% 
+  select(name:remaining_price, type)
 
 
 
@@ -1907,6 +2680,149 @@ filter(my_cards, own == 0, year == 1981) %>%
 
 
 
+
+
+################################################################################
+
+### Now scioscias ###
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(rvest)
+library(tidyr)
+library(stringr)
+library(googlesheets4)
+library(httr)
+library(purrr)
+
+# get the list of cards that I want to price:
+google_docs_url <- "https://docs.google.com/spreadsheets/d/1_vuLfUs1QoaBztfUqJRHFz61FE9ep5_cMxBH3EgXu1c/edit?usp=sharing"
+cards1 <- read_sheet(google_docs_url, sheet = "first_ballot_cards")
+cards1 <- as.data.frame(cards1)
+cards2 <- read_sheet(google_docs_url, sheet = "bbwaa_cards")
+cards2 <- as.data.frame(cards2)
+cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
+cards3 <- as.data.frame(cards3)
+
+# combine all the cards into one data frame:
+type <- rep(c("first_ballot", "bbwaa", "vet_or_other"), 
+            c(nrow(cards1), nrow(cards2), nrow(cards3)))
+my_cards <- bind_rows(cards1, cards2, cards3)
+my_cards <- replace_na(my_cards, list(own = 0))
+my_cards$type <- type
+
+
+# # get URL:
+# url <- "https://www.ebay.com/itm/2021-2020-2019-2018-2017-2016-2015-Topps-Series-1-2-Update-Pick-125-Set/264899059320?_trkparms=aid%3D111001%26algo%3DREC.SEED%26ao%3D1%26asc%3D20160908105057%26meid%3Dcb11f17d8d08442793204064d1f43321%26pid%3D100675%26rk%3D3%26rkt%3D15%26mehot%3Dnone%26sd%3D324519138129%26itm%3D264899059320%26pmt%3D1%26noa%3D1%26pg%3D2380057&_trksid=p2380057.c100675.m4236&_trkparms=pageci%3Aede860da-8773-11eb-bf00-f2a7da6fbaad%7Cparentrq%3A426713471780a9bdb1cd3865ffc4382c%7Ciid%3A1"
+# page <- read_html(url)
+# 
+# desc_link <- page %>%
+#   html_nodes("iframe") %>%
+#   html_attr("src")
+# 
+# tmp <- read_html(desc_link) %>%
+#   html_nodes("p")
+#   html_text()
+# 
+# x <- tmp[10] %>% unlist() %>% 
+#   str_split("<br>")
+
+keys <- c("2021 Topps Series 1", "2020 Topps Update", "2020 Topps Series 1", 
+          "2019 Topps Series 1", "2019 Topps Series 2", "2018 Topps Series 1", 
+          "2018 Topps Series 2", "2018 Topps Update", "2017 Series 1", 
+          "2016 Topps Series 1", "2015 Series 1")
+key_years <- c(2021, 2020, 2020, 2019, 2019, 2018, 2018, 2018, 2017, 2016, 2015)
+n_keys <- length(keys)
+
+data <- readLines("data/scioscias_cards.txt")
+df <- vector("list", n_keys)
+index <- c(3, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1)
+for (i in 1:n_keys) {
+  start <- which(data == keys[i])
+  end <- ifelse(i < n_keys, which(data == keys[i + 1]), length(data))
+  
+  # cat(key_years[i], "\n\n")
+  # cat(data[(start + 1):(end-1)][1:5], "\n\n\n\n")
+
+  number <- strsplit(data[(start + 1):(end-1)], split = "[[:space:]]") %>%
+    lapply("[", index[i]) %>%
+    gsub(pattern = "#", replacement = "") %>%
+    as.integer()
+  desc <- strsplit(data[(start + 1):(end-1)], split = "[[:space:]]") %>%
+    lapply("[", -(1:index[i])) %>% lapply(paste, collapse = " ") %>% 
+    unlist()
+  df[[i]] <- data.frame(year = key_years[i], number = number, desc = desc, ebay = 1)
+}
+
+
+df <- bind_rows(df) %>% 
+  filter(!is.na(number))
+
+df %>% group_by(year) %>% 
+  summarize(n = n(), 
+            n_cards = n_distinct(number)) %>% 
+  arrange(desc(year))
+
+
+offer <- df
+
+
+z <- my_cards %>%
+  filter(own >= 0, year > 2014) %>%
+  mutate(number = as.integer(number)) %>%
+  select(name:own, type) %>%
+  left_join(offer, by = c("year", "number")) %>%
+  replace_na(list(ebay = 0)) %>%
+  filter(ebay == 1) %>% 
+  arrange(own, desc(price))
+
+# z <- my_cards %>%
+#   filter(own == 0, year > 2014) %>%
+#   mutate(number = as.integer(number)) %>%
+#   select(name:own, type)  
+
+extras <- offer %>% 
+  filter(grepl("(Justin Turner|Abreu|Trevor Bauer|Grom|Molina|Rizzo|Biggio|Corey Seager|Luis Robert|Eloy Jimenez|McCutchen|Harper|Baez|Ohtani|Trout|Betts|Sabathia|Tatis|Acu|Guerrero|Gleyber|Lindor|Arenado|Judge|Freeman|Stanton|Bichette|Damon|Wander|Braun|Rendon)", desc)) %>% 
+  filter(!grepl("LL", desc))
+
+
+
+bind_rows(select(z, year, number, desc), 
+          select(extras, year, number, desc)) %>% 
+  arrange(year, number) %>% nrow()
+
+
+bind_rows(select(z, year, number, desc), 
+          select(extras, year, number, desc)) %>% 
+  arrange(year, number) %>% 
+  unique() %>% nrow()
+
+
+final <- bind_rows(select(z, year, number, desc), 
+          select(extras, year, number, desc)) %>% 
+  arrange(year, number) %>% 
+  unique() %>%
+  filter(!grepl("(Street|Fish|Mauer|Cano|Beltran|Felix Hernandez|Utley|Beltre|Greinke|Hudson)", desc)) %>% 
+  arrange(year, number)
+
+final %>% 
+  group_by(year) %>% 
+  summarize(list = paste(sort(number), collapse = ", ")) %>% 
+  as.data.frame()
+
+final %>% 
+  group_by(year) %>% 
+  summarize(n = n()) %>% 
+  as.data.frame()
+
+
+filter(z, own == 0) %>% arrange(year, as.integer(number))
+
+
+filter(my_cards, year %in% 2017:2020, own == 0) %>% 
+  select(name:own, type) %>% 
+  arrange(year, as.integer(number))
 
 
 ################################################################################

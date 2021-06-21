@@ -158,6 +158,63 @@ make_page(cards3)
 
 
 
+### combine all the cards into one data frame:
+type <- rep(c("first_ballot", "bbwaa", "vet_or_other"), 
+            c(nrow(cards1), nrow(cards2), nrow(cards3)))
+my_cards <- bind_rows(cards1, cards2, cards3)
+my_cards <- replace_na(my_cards, list(own = 0))
+my_cards$type <- type
+
+my_cards <- select(my_cards, -url, -front_url, -back_url)
+
+# look at cards I don't have yet by year:
+l <- filter(my_cards, year < 1990, own == 0) %>% 
+  arrange(year, desc(price))
+
+# look at a few years of interest:
+filter(my_cards, year == 2004, own == 0) %>% 
+  arrange(year, desc(price))
+
+filter(my_cards, year == 2008, own == 0) %>% 
+  arrange(as.integer(number))
+
+filter(my_cards, year == 2002, as.integer(number) < 366) %>% 
+  arrange(as.integer(number))
+
+
+filter(my_cards, year == 2002, own == 0) %>% 
+  arrange(as.integer(number))
+
+
+
+### Look at rookies:
+rookies <- my_cards %>% 
+  group_by(type, name) %>% 
+  summarize(first_card = min(year)) %>% 
+  arrange(first_card) %>% 
+  left_join(select(my_cards, type, name, year, price, own, lot_name), 
+            by = c("name", "type", c("first_card" = "year"))) %>% 
+  as.data.frame() %>% 
+  select(name, type, first_card, price, own, lot_name) %>% 
+  as.data.frame()
+
+fwrite(rookies, file = "data/rookies.csv")
+
+
+# read in purchase history:
+purch <- read_sheet(google_docs_url, sheet = "purchase_history")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### a few more command line things:

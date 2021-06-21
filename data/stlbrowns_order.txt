@@ -1,0 +1,9 @@
+2012: 361 Chase Utley 1, 393 Manny Ramirez 3, 398 Buster Posey 3, 498 Joey Votto 2, 500 Alex Rodriguez 3, 
+      537 Ichiro Suzuki 4, 556 Stephen Strasburg 32013: 1 Bryce Harper 13, 2 Derek Jeter 6, 27 Mike Trout 45, 213 Alex Rodriguez 22014: 1 Mike Trout 50, 24 Manny Machado 3, 42 Mariano Rivera 3, 50 Buster Posey 3, 100 Bryce Harper 4, 
+    168 Alex Rodriguez 2, 200 Derek Jeter 18, 332 Stephen Strasburg 3, 400 Clayton Kershaw 3, 
+    450 Justin Verlander 3, 600 David Wright 2, 625 Albert Pujols 52015: 1 Jeter 13, 389 Mookie Betts 4, 463 Justin Verlander 2, 493 Alex Rodriguez 2, 600 Albert Pujols 3, 616 Kris Bryant 902016: 1 Mike Trout 15, 100 Bryce Harper 4, 150 Clayton Kershaw 2, 175 Manny Machado 3, 250 Miguel Cabrera 2, 
+    255 Justin Verlander 2, 300 Buster Posey 2, 310 David Wright 1, 350 Kris Bryant 20, 400 David Ortiz 3, 
+    426 Joey Votto 2, 500 Albert Pujols 3, 700 Ichiro Suzuki 12017: 1 Kris Bryant 5, 34 Bryce Harper 3, 50 Clayton Kershaw 2, 150 Miguel Cabrera 1, 161 Mookie Betts 2, 
+    288 Joey Votto 1, 350 David Ortiz 3, 380 Albert Pujols 3, 450 Justin Verlander 2, 518 Christian Yelich 1, 
+    675 Buster Posey 2, 699 Ichiro Suzuki 22018: 350 Clayton Kershaw 2, 351 Bryce Harper 4, 500 Kris Bryant 6, 582 Albert Pujols 32019: 100 Mike Trout 10, 356 Stephen Strasburg 2, 400 Bryce Harper 3
+
