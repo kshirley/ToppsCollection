@@ -157,6 +157,7 @@ make_page(cards3)
 
 
 
+# test the github authentication
 
 ### combine all the cards into one data frame:
 type <- rep(c("first_ballot", "bbwaa", "vet_or_other"), 
