@@ -186,6 +186,10 @@ filter(my_cards, year == 2002, own == 0) %>%
   arrange(as.integer(number))
 
 
+filter(my_cards, year == 1971, own == 0) %>% 
+  arrange(as.integer(number))
+
+
 
 ### Look at rookies:
 rookies <- my_cards %>% 
@@ -208,8 +212,132 @@ purch <- read_sheet(google_docs_url, sheet = "purchase_history")
 
 
 
+### 2021-08-06: identify a subset of cards to buy and get cost
+rem <- l %>% 
+  filter(type == "first_ballot") %>% 
+  arrange(price) %>% 
+  as.data.frame() 
+
+fwrite(rem, file = "data/first_ballot_left_2021-08-06.csv")
+    
+m <- filter(my_cards, year >= 1990, own == 0) %>% 
+  arrange(year, desc(price))
+
+m %>% 
+  filter(type == "first_ballot") %>% 
+  arrange(price) %>% 
+  as.data.frame()
+
+# read back in the cards to target:
+rem <- fread("data/first_ballot_left_2021-08-06_edited.csv", 
+                data.table = FALSE)
+rem <- rem %>% 
+  replace_na(list(target = 0, rookie = 0))
 
 
+rem %>% 
+  group_by(target) %>% 
+  summarize(n = n(), 
+            list_price = sum(price), 
+            my_price = sum(my_price))
+
+
+
+
+
+### print out dividers with names of players along the top:
+2.7*4
+3.75*2
+
+height <- 4.20
+width <- 2.85
+
+list1 <- filter(my_cards, type == "first_ballot") %>% 
+  pull(name) %>% 
+  unique()
+
+pdf(file = paste0("figures/dividers_first_ballot.pdf"),
+    width = 11, height = 8.5)
+for (block in 1:8) {
+  par(mar = c(0, 0, 0, 0), 
+      oma = c(0, 0, 0, 0), 
+      mgp = c(0, 0, 0))
+  plot(0, 0, type = "n", bty = "n", xlim = c(0, 11), ylim = c(0, 8.5))
+  for (i in 1:4) {
+    for (j in 1:2) {
+      polygon(x = c(0, width, width, 0, 0) + (i - 1)*width, 
+              y = c(0, 0, height, height, 0) + (j - 1)*height, 
+              border = "black")
+      polygon(x = c(0, width, width, 0, 0) + (i - 1)*width, 
+              y = c(0.897, 0.897, 1, 1, 0.897)*height + (j - 1)*height, 
+              col = "#fff7bc")
+      text(x = width/2 + (i - 1)*width,
+           y = 0.9485*height + (j - 1)*height, 
+           label = list1[(i-1)*2 + j + (block - 1)*8], 
+           font = 2, cex = 1.2)
+    }
+  }
+}
+dev.off()
+
+
+list2 <- filter(my_cards, type == "bbwaa") %>% 
+  pull(name) %>% 
+  unique()
+
+pdf(file = paste0("figures/dividers_bbwaa.pdf"),
+    width = 11, height = 8.5)
+for (block in 1:6) {
+  par(mar = c(0, 0, 0, 0), 
+      oma = c(0, 0, 0, 0), 
+      mgp = c(0, 0, 0))
+  plot(0, 0, type = "n", bty = "n", xlim = c(0, 11), ylim = c(0, 8.5))
+  for (i in 1:4) {
+    for (j in 1:2) {
+      polygon(x = c(0, width, width, 0, 0) + (i - 1)*width, 
+              y = c(0, 0, height, height, 0) + (j - 1)*height, 
+              border = "black")
+      polygon(x = c(0, width, width, 0, 0) + (i - 1)*width, 
+              y = c(0.897, 0.897, 1, 1, 0.897)*height + (j - 1)*height, 
+              col = "#fec44f")
+      text(x = width/2 + (i - 1)*width,
+           y = 0.9485*height + (j - 1)*height, 
+           label = list2[(i-1)*2 + j + (block - 1)*8], 
+           font = 2, cex = 1.2)
+    }
+  }
+}
+dev.off()
+
+
+
+list3 <- filter(my_cards, type == "vet_or_other") %>% 
+  pull(name) %>% 
+  unique()
+
+pdf(file = paste0("figures/dividers_vet_or_other.pdf"),
+    width = 11, height = 8.5)
+for (block in 1:10) {
+  par(mar = c(0, 0, 0, 0), 
+      oma = c(0, 0, 0, 0), 
+      mgp = c(0, 0, 0))
+  plot(0, 0, type = "n", bty = "n", xlim = c(0, 11), ylim = c(0, 8.5))
+  for (i in 1:4) {
+    for (j in 1:2) {
+      polygon(x = c(0, width, width, 0, 0) + (i - 1)*width, 
+              y = c(0, 0, height, height, 0) + (j - 1)*height, 
+              border = "black")
+      polygon(x = c(0, width, width, 0, 0) + (i - 1)*width, 
+              y = c(0.897, 0.897, 1, 1, 0.897)*height + (j - 1)*height, 
+              col = "#fe9929")
+      text(x = width/2 + (i - 1)*width,
+           y = 0.9485*height + (j - 1)*height, 
+           label = list3[(i-1)*2 + j + (block - 1)*8], 
+           font = 2, cex = 1.2)
+    }
+  }
+}
+dev.off()
 
 
 
