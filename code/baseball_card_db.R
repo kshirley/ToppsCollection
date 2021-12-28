@@ -30,6 +30,11 @@ cards2 <- as.data.frame(cards2)
 cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
 cards3 <- as.data.frame(cards3)
 
+# fix URLs:
+cards1$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards1$url, fixed = TRUE)
+cards2$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards2$url, fixed = TRUE)
+cards3$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards3$url, fixed = TRUE)
+
 
 # function to build the webpage locally:
 make_page <- function(cards) {
@@ -169,6 +174,10 @@ my_cards$type <- factor(type, levels = c("first_ballot", "bbwaa", "vet_or_other"
 my_cards <- select(my_cards, -url, -front_url, -back_url)
 
 # look at cards I don't have yet by year:
+filter(my_cards, year >= 1963 & year <= 1967 & own == 0) %>% 
+  arrange(year, number)
+
+
 l <- filter(my_cards, year < 1990, own == 0) %>% 
   arrange(year, desc(price))
 
@@ -198,6 +207,21 @@ filter(my_cards, year == 1971, own == 0) %>%
 
 filter(my_cards, year == 2000, own == 0) %>% 
   arrange(as.integer(number))
+
+filter(my_cards, year %in% (1981:1982), own == 0) %>% 
+  arrange(year, as.integer(number))
+
+
+filter(my_cards, year %in% (1971:1999), own == 0) %>% 
+  arrange(year, as.integer(number))
+
+
+filter(my_cards, year == 2003) %>% 
+  arrange(as.integer(number))
+
+filter(my_cards, year == 2003, own == 0) %>% 
+  arrange(as.integer(number))
+
 
 
 ### Look at rookies:
