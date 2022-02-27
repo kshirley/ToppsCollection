@@ -31,9 +31,12 @@ cards3 <- read_sheet(google_docs_url, sheet = "vet_cards")
 cards3 <- as.data.frame(cards3)
 
 # fix URLs:
-cards1$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards1$url, fixed = TRUE)
-cards2$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards2$url, fixed = TRUE)
-cards3$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards3$url, fixed = TRUE)
+# cards1$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards1$url, fixed = TRUE)
+# cards2$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards2$url, fixed = TRUE)
+# cards3$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards3$url, fixed = TRUE)
+
+cards1 <- filter(cards1, !(year == 1982 & number == 15))
+cards2 <- filter(cards2, !(year == 1981 & number == 479))
 
 
 # function to build the webpage locally:
@@ -162,6 +165,10 @@ make_page(cards3)
 
 
 
+
+
+
+
 # test the github authentication
 
 ### combine all the cards into one data frame:
@@ -172,6 +179,13 @@ my_cards <- replace_na(my_cards, list(own = 0))
 my_cards$type <- factor(type, levels = c("first_ballot", "bbwaa", "vet_or_other"))
 
 my_cards <- select(my_cards, -url, -front_url, -back_url)
+
+
+# each year:
+filter(my_cards, year == 2013 & own == 0) %>% 
+  arrange(year, number)
+
+
 
 # look at cards I don't have yet by year:
 filter(my_cards, year >= 1963 & year <= 1967 & own == 0) %>% 
@@ -221,6 +235,83 @@ filter(my_cards, year == 2003) %>%
 
 filter(my_cards, year == 2003, own == 0) %>% 
   arrange(as.integer(number))
+
+filter(my_cards, year == 2005, own == 0) %>% 
+  arrange(as.integer(number)) %>% 
+  filter(as.integer(number) > 367)
+
+
+
+
+### Add in the All-Star Rookies:
+asr <- read_sheet(google_docs_url, sheet = "all_star_rookies")
+asr <- as.data.frame(asr)
+asr <- filter(asr, !is.na(year))
+asr <- replace_na(asr, list(own = 0))
+
+sum(asr$own)
+
+
+
+
+# 2020
+filter(my_cards, year == 2020, own == 0) %>% 
+  select(year, number, name) %>% 
+  bind_rows(filter(asr, year == 2020, own == 0) %>% 
+              select(year, number, name)) %>% 
+  arrange(as.integer(number)) %>% 
+  filter(!duplicated(number))
+
+# 2021
+filter(my_cards, year == 2021, own == 0) %>% 
+  select(year, number, name) %>% 
+  bind_rows(filter(asr, year == 2021, own == 0) %>% 
+              select(year, number, name)) %>% 
+  arrange(as.integer(number)) %>% 
+  filter(!duplicated(number))
+
+# 2015-2019 stlbrowns:
+filter(my_cards, year %in% (2015:2019), own == 0) %>% 
+  select(year, number, name) %>% 
+  mutate(hof = 1) %>% 
+  bind_rows(filter(asr, year %in% (2015:2019), own == 0) %>% 
+              select(year, number, name) %>% 
+              mutate(hof = 0)) %>% 
+  arrange(as.integer(number)) %>% 
+  filter(!duplicated(number)) %>% 
+  arrange(year, number)
+# go to excel to fill in the picks per card..
+
+
+# ... read in the csv and print out the offer:
+stl <- fread("~/misc/stl_browns_2015-2019.csv", data.table = FALSE)
+stl %>% 
+  group_by(year) %>% 
+  summarize(o = paste(number, collapse = ", "))
+
+
+
+
+# Try 'tripodsportscollectibles':
+filter(my_cards, year == 2012, own == 0) %>% 
+  select(year, name, number) %>% 
+  mutate(hof = 1) %>% 
+  bind_rows(filter(asr, year == 2012, own == 0) %>% 
+              select(year, name, number) %>% 
+              mutate(hof = 0)) %>% 
+  arrange(year, number)
+
+filter(my_cards, year == 2014, own == 0) %>% 
+  select(year, name, number) %>% 
+  mutate(hof = 1) %>% 
+  bind_rows(filter(asr, year == 2014, own == 0) %>% 
+              select(year, name, number) %>% 
+              mutate(hof = 0)) %>% 
+  arrange(year, number) %>% 
+  filter(!duplicated(number))
+
+
+
 
 
 
