@@ -1,0 +1,5 @@
+Alex Rodriguez	2005	1	0.60	
+Jim Thome		2005	25	1.05	
+Adrian Beltre	2005	33	0.30	
+Albert Pujols	2005	100	0.63	
+Trevor Hoffman	2005	203	0.30	

@@ -37,7 +37,8 @@ player_df <- as.data.frame(player_df)
 
 # all NA players are not in 2021 topps. only need to check players with a URL
 # here in this data frame:
-df <- filter(player_df, !is.na(url) & !(method == "current_maybe_add"))
+#df <- filter(player_df, !is.na(url) & !(method == "current_maybe_add")) 
+df <- filter(player_df, !is.na(url))
 nrow(df)
 # 69 players
 
@@ -52,14 +53,14 @@ n_players <- nrow(df)
 
 cards <- vector("list", n_players)
 player_url <- rep("", n_players)
-for (i in 1:n_players) {
+for (i in 77:n_players) {
   print(i)
   Sys.sleep(2)
   player_prefix <- "https://www.tcdb.com/Person.cfm/pid/"
   filters <- "?sTeam=&sCardNum=&sNote=&sSetName=Topps&sBrand="
   player_url[i] <- paste0(player_prefix, 
                           df$pid[i], 
-                          "/col/Y/yea/2021/", 
+                          "/col/Y/yea/2022/", 
                           df$player_string[i], 
                           filters)
 
@@ -99,12 +100,15 @@ for (i in 1:n_players) {
 }
 
 
-new_cards <- data.frame(name = rep(df$Name[1:69], sapply(cards[1:69], length)), 
-                        player_url = rep(player_url[1:69], sapply(cards[1:69], length)), 
-                        card_url = unlist(cards[1:69]))
+# new_cards <- data.frame(name = rep(df$Name[1:69], sapply(cards[1:69], length)), 
+#                         player_url = rep(player_url[1:69], sapply(cards[1:69], length)), 
+#                         card_url = unlist(cards[1:69]))
 
+new_cards <- data.frame(name = rep(df$Name, sapply(cards, length)), 
+                        player_url = rep(player_url, sapply(cards, length)), 
+                        card_url = unlist(cards))
 
-fwrite(new_cards, file = "data/card_collection_2021.csv")  
+fwrite(new_cards, file = "data/card_collection_2022.csv")  
 
 
 
@@ -138,7 +142,7 @@ cards3 <- as.data.frame(cards3)
 
 
 # read in the 2021 annotated cards:
-new_cards <- fread("data/card_collection_2021_annotated.csv", data.table = FALSE)
+new_cards <- fread("data/card_collection_2022_annotated.csv", data.table = FALSE)
 new_cards <- filter(new_cards, collect == 1)
 
 head(new_cards)
@@ -209,7 +213,7 @@ cards <- cards %>%
          front_url, back_url)
 
 # write the file to disk:
-fwrite(cards, file = "data/additions_2021_final.csv")
+fwrite(cards, file = "data/additions_2022_final.csv")
 
 
 
@@ -255,7 +259,7 @@ cards <- cards %>%
 tmp <- filter(cards, width > height)
 
 
-# rotate the 80 images that are horizontally laid out and write to disk:
+# rotate the images that are horizontally laid out and write to disk:
 for (i in 1:nrow(tmp)) {
   if(!file.exists(paste0("images/rotated/rotated_", tmp$filename[i]))) {
     card <- image_read(paste0("images/front/", tmp$filename[i]))
@@ -267,7 +271,9 @@ for (i in 1:nrow(tmp)) {
 
 
 # now, scp the files to remote machine.
-# also manually paste the rows into googlesheets.
+# also manually paste the rows into googlesheets, from the df 'cards'
+# 'data/additions_2022_final.csv'
+
 
 # sync the images from my local machine to the server:
 # rsync -avzn ~/public_git/ToppsCollection/images/ kes@66.228.42.50:/home/kes/public/kennyshirley.com/public_html/bball_cards/images

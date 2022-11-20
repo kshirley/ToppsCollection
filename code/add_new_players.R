@@ -1,6 +1,7 @@
 ################################################################################
 
 # [1] Add 11 players in late 2021
+# [2] Then add 8 players in November 2022
 
 setwd("~/public_git/ToppsCollection")
 library(dplyr)
@@ -35,8 +36,13 @@ player_df <- as.data.frame(player_df)
 # all NA players are not in 2021 topps. only need to check players with a URL
 # here in this data frame:
 df <- filter(player_df, method == "current_maybe_add")
+
+
+# For the 2022 addition:
+df <- filter(player_df, method == "current_maybe_add_2022" | (method == "vet" & Year == 2022))
 nrow(df)
-# 11 players
+# 11 players for 2021
+# 8 players for 2022
 
 # get their player ID and player name/string:
 pid <- sapply(strsplit(df$url, split = "/"), function(x) x[[6]])
@@ -103,7 +109,8 @@ new_cards <- data.frame(name = rep(df$Name, sapply(cards, length)),
 new_cards$card_url <- paste0("https://www.tcdb.com", new_cards$card_url)
 
 
-fwrite(new_cards, file = "data/card_collection_2021_new_players.csv")  
+# fwrite(new_cards, file = "data/card_collection_2021_new_players.csv")  
+fwrite(new_cards, file = "data/card_collection_2022_nov_new_players.csv")  
 
 
 
@@ -125,7 +132,8 @@ lu <- function(x) length(unique(x))
 su <- function(x) sort(unique(x))
 
 # read in the 2021 annotated cards:
-new_cards <- fread("data/card_collection_2021_new_players_annotated.csv", data.table = FALSE)
+# new_cards <- fread("data/card_collection_2021_new_players_annotated.csv", data.table = FALSE)
+new_cards <- fread("data/card_collection_2022_nov_new_players_annotated.csv", data.table = FALSE)
 new_cards <- filter(new_cards, collect == 1)
 
 head(new_cards)
@@ -157,16 +165,16 @@ price <- numeric(n_cards)
 
 
 prefix <- "https://www.tradingcarddb.com"
-for (i in 60:n_cards) {
+for (i in 1:n_cards) {
   if (i %% 2 == 0) print(i)
-  # Sys.sleep(1)
+  Sys.sleep(1)
   #card <- read_html(paste0(prefix, cards$url[i]))
   card <- read_html(cards$url[i])
   imgs <- card %>% html_nodes("img") %>%
     html_attr("src")
   front_url[i] <- imgs[grep("Fr.jpg", imgs)]
   back_url[i] <- imgs[grep("Bk.jpg", imgs)]
-  price_text <- card %>% html_nodes("em") %>%
+  price_text <- card %>% html_nodes("li") %>%
     html_text()
   ix <- grep("Med. Price", price_text)
   if (length(ix) > 0) {
@@ -201,7 +209,8 @@ cards$own <- NA
 
 
 # write the file to disk:
-fwrite(cards, file = "data/additions_2021_new_players_final.csv")
+# fwrite(cards, file = "data/additions_2021_new_players_final.csv")
+fwrite(cards, file = "data/additions_2022_nov_new_players_final.csv")
 
 
 

@@ -35,7 +35,8 @@ cards3 <- as.data.frame(cards3)
 # cards2$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards2$url, fixed = TRUE)
 # cards3$url <- gsub(pattern = "https://www.tcdb.com", replacement = "", x = cards3$url, fixed = TRUE)
 
-cards1 <- filter(cards1, !(year == 1982 & number == 15))
+# cards1 <- filter(cards1, !(year == 1982 & number == 21))
+cards1 <- filter(cards1, !(front_url == "/Images/Cards/Baseball/89/89-21Fr.jpg"))
 cards2 <- filter(cards2, !(year == 1981 & number == 479))
 
 
@@ -167,8 +168,6 @@ make_page(cards3)
 
 
 
-
-
 # test the github authentication
 
 ### combine all the cards into one data frame:
@@ -179,6 +178,18 @@ my_cards <- replace_na(my_cards, list(own = 0))
 my_cards$type <- factor(type, levels = c("first_ballot", "bbwaa", "vet_or_other"))
 
 my_cards <- select(my_cards, -url, -front_url, -back_url)
+
+# look at 2022 series 2:
+filter(my_cards, year == 2022) %>% arrange(as.integer(number))
+
+
+filter(my_cards, year == 2010, own == 0) %>% arrange(as.integer(number))
+
+
+
+# each year:
+filter(my_cards, year == 1998 & own == 0) %>% 
+  arrange(year, number)
 
 
 # each year:
@@ -1554,3 +1565,14 @@ filter(all_cards, grepl(all$Name[i], name))
 # all <- select(hof, Name, YoB, pct, Year) %>%
 #   bind_rows(select(vet, Name, Year = induction.year) %>%
 #               mutate(YoB = NA, pct = NA))
+
+
+# team <- c("BOS", "MIA", "MKE", "PHI")
+# bid <- c(2.48, 3.7, 4.4, 5.8)
+# ask <- c(2.8, 5.2, 5.6, 9)
+# mean <- (bid + ask)/2
+# 
+# df <- data.frame(team, bid, ask, mean, p_betfair = round(1 / mean, 3))
+# df$p_betfair <- round(df$p_betfair / sum(df$p_betfair), 2)
+# df$p_538 <- c(0.55, 0.13, 0.14, 0.18)
+# df
