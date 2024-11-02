@@ -168,6 +168,7 @@ make_page(cards3)
 
 
 
+
 # test the github authentication
 
 ### combine all the cards into one data frame:
@@ -178,6 +179,22 @@ my_cards <- replace_na(my_cards, list(own = 0))
 my_cards$type <- factor(type, levels = c("first_ballot", "bbwaa", "vet_or_other"))
 
 my_cards <- select(my_cards, -url, -front_url, -back_url)
+
+
+
+filter(my_cards, own == 0, year >1992) %>% select(name, year, number) %>% 
+  arrange(year)
+
+
+# 2008 list:
+filter(my_cards, own == 0, year == 2008) %>% select(name, year, number)
+
+# 2009
+filter(my_cards, own == 0, year == 2009) %>% select(name, year, number)
+
+# 2004
+filter(my_cards, own == 0, year == 2004) %>% select(name, year, number)
+
 
 # look at 2022 series 2:
 filter(my_cards, year == 2022) %>% arrange(as.integer(number))
@@ -262,20 +279,68 @@ asr <- replace_na(asr, list(own = 0))
 
 sum(asr$own)
 
+asr %>% 
+  filter(own == 0) %>% 
+  group_by(year) %>% 
+  summarize(n = n()) %>% 
+  as.data.frame()
+
+asr %>% 
+  group_by(year) %>% 
+  summarize(n_own = sum(own), n_left = n() - sum(own)) %>% 
+  as.data.frame()
+
+
+asr %>% 
+  filter(own == 0) %>% 
+  select(year:own) %>% 
+  as.data.frame()
 
 
 
-# 2020
-filter(my_cards, year == 2020, own == 0) %>% 
-  select(year, number, name) %>% 
-  bind_rows(filter(asr, year == 2020, own == 0) %>% 
-              select(year, number, name)) %>% 
-  arrange(as.integer(number)) %>% 
-  filter(!duplicated(number))
+# 2012-2019:
+my_cards %>% 
+  filter(own == 0, year >= 2012, year <= 2019) %>% 
+  as.data.frame()
+
+
+# 2000-2001:
+my_cards %>% 
+  filter(own == 0, year >= 2000, year <= 2001) %>% 
+  as.data.frame()
+
+asr %>% filter(own == 0, year >= 2000, year <= 2001)
+
+
+# 1996-1997:
+my_cards %>% 
+  filter(own == 0, year >= 1996, year <= 1997) %>% 
+  as.data.frame()
+
+asr %>% filter(own == 0, year >= 1996, year <= 1997)
+
+
+
+# tax calculation:
+hobby_profit <- ((100:200)*0.65 - 100)
+
+expense <- 100
+tax_rate <- 0.35
+revenue <- 100:200
+profit <- (1 - tax_rate)*revenue - expense
+
+plot(revenue, profit)
+
+
+
+
+
 
 # 2021
 filter(my_cards, year == 2021, own == 0) %>% 
   select(year, number, name) %>% 
+  mutate(num = as.integer(number)) %>% 
+  select(-number, number = num) %>% 
   bind_rows(filter(asr, year == 2021, own == 0) %>% 
               select(year, number, name)) %>% 
   arrange(as.integer(number)) %>% 
@@ -450,9 +515,17 @@ list3 <- filter(my_cards, type == "vet_or_other") %>%
   pull(name) %>% 
   unique()
 
-pdf(file = paste0("figures/dividers_vet_or_other.pdf"),
+new_list <- data.frame(id = 1:95, player = list3) %>% 
+  filter(id %in% c(2, 6, 8, 16, 18, 64, 70, 72, 77, 78, 79, 82, 84, 86, 
+                   87, 89, 90, 92, 93, 94, 95))
+new_list <- c(new_list$player, "Ryan Braun", "Barry Zito", "Kerry Wood", "Miguel Tejada", 
+              "Nomar Garciaparra", "Prince Fielder", "Deion Sanders")
+
+list3 <- new_list
+
+pdf(file = paste0("figures/dividers_vet_or_other_v2.pdf"),
     width = 11, height = 8.5)
-for (block in 1:10) {
+for (block in 1:4) {
   par(mar = c(0, 0, 0, 0), 
       oma = c(0, 0, 0, 0), 
       mgp = c(0, 0, 0))
@@ -1435,6 +1508,49 @@ x <- bats %>%
             most_recent_price = price[1]) %>%
   as.data.frame() %>%
   arrange(desc(n))
+
+
+
+
+
+
+################################################################################
+
+# [8] Profit margin analysis accounting for taxes and no expenses:
+
+setwd("~/public_git/ToppsCollection")
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+
+price_paid <- 1:100
+price_sold <- 1:100
+
+e <- expand.grid(price_paid, price_sold)
+names(e) <- c("price_paid", "price_sold")
+e <- filter(e, price_sold >= price_paid)
+
+e <- e %>% 
+  mutate(tax_paid = 0.3 * price_sold, 
+         profit = price_sold - price_paid - tax_paid)
+
+# make a plot:
+p1 <- e %>% 
+  ggplot(aes(x = price_paid, y = price_sold, color = profit)) + 
+  geom_point()
+
+ggsave(p1, file = "~/misc/bball_cards/fig_profit.pdf", 
+       width = 10, height = 7)
+
+
+filter(e, price_paid == 25, price_sold == 50)
+
+e %>% 
+  ggplot(aes(x = price_paid, y = price_sold, label = profit)) + 
+  geom_text()
+
 
 
 

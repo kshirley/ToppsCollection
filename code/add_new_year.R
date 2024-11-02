@@ -41,6 +41,7 @@ player_df <- as.data.frame(player_df)
 df <- filter(player_df, !is.na(url))
 nrow(df)
 # 69 players
+# 88 players for 2023 topps
 
 # get their player ID and player name/string:
 pid <- sapply(strsplit(df$url, split = "/"), function(x) x[[6]])
@@ -53,14 +54,14 @@ n_players <- nrow(df)
 
 cards <- vector("list", n_players)
 player_url <- rep("", n_players)
-for (i in 77:n_players) {
+for (i in 1:n_players) {
   print(i)
-  Sys.sleep(2)
+  Sys.sleep(runif(1, 0, 3))
   player_prefix <- "https://www.tcdb.com/Person.cfm/pid/"
   filters <- "?sTeam=&sCardNum=&sNote=&sSetName=Topps&sBrand="
   player_url[i] <- paste0(player_prefix, 
                           df$pid[i], 
-                          "/col/Y/yea/2022/", 
+                          "/col/Y/yea/2023/", 
                           df$player_string[i], 
                           filters)
 
@@ -108,7 +109,7 @@ new_cards <- data.frame(name = rep(df$Name, sapply(cards, length)),
                         player_url = rep(player_url, sapply(cards, length)), 
                         card_url = unlist(cards))
 
-fwrite(new_cards, file = "data/card_collection_2022.csv")  
+fwrite(new_cards, file = "data/card_collection_2023.csv")  
 
 
 
@@ -142,7 +143,7 @@ cards3 <- as.data.frame(cards3)
 
 
 # read in the 2021 annotated cards:
-new_cards <- fread("data/card_collection_2022_annotated.csv", data.table = FALSE)
+new_cards <- fread("data/card_collection_2023_annotated.csv", data.table = FALSE)
 new_cards <- filter(new_cards, collect == 1)
 
 head(new_cards)
@@ -171,8 +172,9 @@ front_url <- rep("", n_cards)
 back_url <- rep("", n_cards)
 price <- numeric(n_cards)
 
+# https://www.tcdb.com/ViewCard.cfm/sid/299305/cid/20720017/2023-Topps-27-Mike-Trout
 
-prefix <- "https://www.tradingcarddb.com"
+prefix <- "https://www.tcdb.com"
 for (i in 1:n_cards) {
   if (i %% 2 == 0) print(i)
   # Sys.sleep(1)
@@ -181,7 +183,7 @@ for (i in 1:n_cards) {
     html_attr("src")
   front_url[i] <- imgs[grep("Fr.jpg", imgs)]
   back_url[i] <- imgs[grep("Bk.jpg", imgs)]
-  price_text <- card %>% html_nodes("em") %>%
+  price_text <- card %>% html_nodes("li") %>%
     html_text()
   ix <- grep("Med. Price", price_text)
   if (length(ix) > 0) {
@@ -213,7 +215,7 @@ cards <- cards %>%
          front_url, back_url)
 
 # write the file to disk:
-fwrite(cards, file = "data/additions_2022_final.csv")
+fwrite(cards, file = "data/additions_2023_final.csv")
 
 
 
@@ -232,7 +234,7 @@ for (i in 1:n_cards) {
 setwd("~/public_git/ToppsCollection/images/back")
 for (i in 1:n_cards) {
   print(i)
-  Sys.sleep(1.5)
+  Sys.sleep(runif(1, 1, 2))
   cmd <- paste0("wget ", prefix, cards$back_url[i])
   system(command = cmd)
 }

@@ -121,6 +121,10 @@ fwrite(cards, file = "data/additions_traded_and_update_final.csv")
 
 # for loop to download images:
 
+# just get one row (for 99 topps traded Sabathia):
+cards <- filter(my_cards, year == 1999, name == "C.C. Sabathia")
+n_cards <- nrow(cards)
+
 prefix <- "https://www.tradingcarddb.com"
 
 # front
